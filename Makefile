@@ -3,28 +3,39 @@
 #------------------------------------
 
 APP              = ssbl
-APP_SRCS        += ssbl.c
+APP_SRCS        += ssbl.c partition.c pi_partition.c
 APP_INC         +=
 APP_CFLAGS      += -Wall -Werror -Wextra -D SSBL_YES_TRACE
 
+platform = gvsoc
 
-FLASH_DATA := flash1.img
-MKFILE_DIR_PATH := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
-FLASH_DATA_PATH := $(MKFILE_DIR_PATH)$(FLASH_DATA)
+#
+# Includes
+#
+include $(GAP_SDK_HOME)/tools/rules/pmsis_rules.mk
 
-PLPBRIDGE_FLAGS = -fs "$(FLASH_DATA_PATH)"
+#
+# Local variables
+#
 
-override runner_args=--config-opt=flash/raw_fs=$(FLASH_DATA_PATH)
+MAKEFILE_DIR_PATH := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+FLASH_DATA := data.img
+FLASH_DATA_PATH := $(MAKEFILE_DIR_PATH)$(FLASH_DATA)
 
-SSBL_ELF = BUILD/GAP8_V2/GCC_RISCV/test
+SSBL_ELF = $(BUILDDIR)/test
 RGV_DIR = gvsoc
 FLASH_IMG_NAME = flash.img
 FLASH_IMG = $(RGV_DIR)/$(FLASH_IMG_NAME)
 buildFlashImage = /home/raifer/gapy/build_flash_image.py
 
+
+#
+# Targets
+#
 img: $(FLASH_IMG)
 $(FLASH_IMG): partitions.csv $(buildFlashImage) $(APP_SRCS)
 	python3 $(buildFlashImage) --partition-table $< $(SSBL_ELF) -o $@
+
 
 rgv: $(FLASH_IMG) | $(RGV_DIR)
 	gvsoc --config=gapuino \
@@ -36,4 +47,4 @@ rgv: $(FLASH_IMG) | $(RGV_DIR)
 $(RGV_DIR):
 	mkdir -p $@
 
-include $(GAP_SDK_HOME)/tools/rules/pmsis_rules.mk
+

@@ -6,4 +6,9 @@ set(CMAKE_C_STANDARD 11)
 include_directories(/home/raifer/gap_sdk/rtos/pmsis/pmsis_bsp/include)
 
 add_executable(ssbl
-        ssbl.c traces.h)
+        ssbl.c
+        traces.h
+        partition.c
+        partition.h
+        pi_partition.c
+        pi_partition.h)

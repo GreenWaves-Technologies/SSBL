@@ -28,6 +28,7 @@
 #include "bsp/flash/hyperflash.h"
 
 #include "traces.h"
+#include "partition.h"
 
 /*
  * Global variables
@@ -137,6 +138,8 @@ void ssbl(void)
     SSBL_TRACE("Open flash...");
     open_flash(&flash, &flash_conf);
     SSBL_TRACE("Open flash done.");
+
+    test_partition();
 
     pi_flash_close(&flash);
 
