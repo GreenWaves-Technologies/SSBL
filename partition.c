@@ -19,15 +19,10 @@
  * on 12/20/2019.
  */
 
+#include "strings.h"
+
 #include "partition.h"
 #include "pi_partition.h"
+#include "bootloader_utility.h"
 #include "traces.h"
 
-int8_t test_partition(void)
-{
-    SSBL_TRACE("Test partition...");
-//    const pi_partition_t partition;
-//    pi_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, NULL);
-    SSBL_TRACE("Test partition done.");
-    return 0;
-}

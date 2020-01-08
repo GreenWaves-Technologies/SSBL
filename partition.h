@@ -23,6 +23,6 @@
 #define SSBL_PARTITION_H
 
 #include "stdint.h"
+#include "pmsis.h"
 
-int8_t test_partition(void);
 #endif //SSBL_PARTITION_H
