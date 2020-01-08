@@ -3,7 +3,13 @@
 #------------------------------------
 
 APP              = ssbl
-APP_SRCS        += ssbl.c partition.c pi_partition.c
+APP_SRCS        += \
+    ssbl.c \
+    partition.c \
+    pi_partition.c \
+    bootloader_utility.c \
+    pi_flash_partition.c \
+    md5.c
 APP_INC         +=
 APP_CFLAGS      += -Wall -Werror -Wextra -D SSBL_YES_TRACE
 
@@ -42,7 +48,7 @@ rgv: $(FLASH_IMG) | $(RGV_DIR)
 	--dir=$(RGV_DIR) \
 	--config-opt **/flash/preload_file=$(FLASH_IMG_NAME) \
 	--config-opt=**/runner/boot_from_flash=false \
-	run
+	prepare run
 
 $(RGV_DIR):
 	mkdir -p $@
