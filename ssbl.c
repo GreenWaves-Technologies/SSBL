@@ -19,13 +19,12 @@
  */
 
 #include "stdio.h"
-#include "string.h"
 #include "stdint.h"
 
 #include "pmsis.h"
-#include "pmsis/rtos/pmsis_assert.h"
-#include "bsp/partition.h"
+#include "pi_errno.h"
 #include "bsp/flash/hyperflash.h"
+#include "bootloader_utility.h"
 
 #include "traces.h"
 #include "partition.h"
@@ -37,98 +36,32 @@
 static pi_device_t flash;
 static struct pi_hyperflash_conf flash_conf;
 
-void test_write_partition(pi_device_t *part)
-{
-    uint8_t *data;
-    uint8_t *data2;
-    const uint32_t addr = 0x40000;
-
-    puts("\nTest write partition");
-
-    pi_assert(
-            (data = pi_l2_malloc(8)));
-    pi_assert(
-            (data2 = pi_l2_malloc(8)));
-
-    // Initialize data
-    printf("data: ");
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        data[i] = i;
-        printf("%u ", data[i]);
-    }
-    puts("");
-
-    // Erase sector
-    printf("Erase sector at 0x%lx\n", addr);
-    pi_assert(
-            pi_partition_erase(part, addr, 8) >= 0);
-
-    // Write data
-    printf("Write data at 0x%lx\n", addr);
-    pi_assert(
-            pi_partition_write(part, addr, data, 8) >= 0);
-
-    // Read partition for check writing operation
-    puts("Reads the data written and check their integrity");
-    pi_assert(
-            pi_partition_read(part, addr, data2, 8) >= 0);
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        pi_assert(data[i] == data2[i]);
-    }
-
-    pi_l2_free(data, 8);
-    pi_l2_free(data2, 8);
-
-    puts("Test write artition done");
-}
-
-void test_read_partition(pi_device_t *part)
-{
-    int8_t rc;
-    char *buff;
-    const size_t buff_size = 16;
-    const char *pattern = "FS in partition";
-
-    printf("\nTest read partition 1\n"
-           "Check pattern `%s' at 0x\n", pattern);
-
-    pi_assert(
-            buff = pi_l2_malloc(buff_size));
-    pi_assert(
-            pi_partition_read(part, 0, buff, buff_size) >= 0);
-
-    buff[buff_size - 1] = '\0';
-    printf("Read `%s'\n", buff);
-
-    pi_assert(
-            strcmp(pattern, buff) == 0);
-
-    pi_l2_free(buff, buff_size);
-
-    puts("Test read partition 1 done");
-}
-
-void open_partition(pi_device_t *part, struct pi_partition_conf *conf, uint8_t id, pi_device_t *flash)
-{
-    printf("Open partition %u\n", id);
-
-    conf->id = id;
-    conf->flash = flash;
-    part->config = conf;
-    pi_assert(
-            pi_partition_open(part) >= 0);
-}
 
 void open_flash(pi_device_t *flash, struct pi_hyperflash_conf *flash_conf)
 {
     pi_hyperflash_conf_init(flash_conf);
     pi_open_from_conf(flash, flash_conf);
-    pi_assert(
-            pi_flash_open(flash) >= 0
-    );
+
+    if (pi_flash_open(flash) < 0)
+    {
+        SSBL_TRACE("Error: unable to open flash device");
+        pmsis_exit(PI_FAIL);
+    }
+
+}
+
+void boot_to_flash_app(pi_device_t *flash)
+{
+    bootloader_state_t bs = {0};
+
+    SSBL_TRACE("Boot to flash app");
+
+    SSBL_TRACE("Load partition table from flash");
+    if (!bootloader_utility_load_partition_table(flash, &bs))
+    {
+        SSBL_TRACE("Error to find bootable partition.");
+        pmsis_exit(PI_FAIL);
+    }
 }
 
 void ssbl(void)
@@ -139,7 +72,7 @@ void ssbl(void)
     open_flash(&flash, &flash_conf);
     SSBL_TRACE("Open flash done.");
 
-    test_partition();
+    boot_to_flash_app(&flash);
 
     pi_flash_close(&flash);
 
