@@ -24,6 +24,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 
+#include "pi_errno.h"
 #include "pmsis.h"
 #include "bsp/flash.h"
 
@@ -53,45 +54,52 @@
  * @note Keep this enum in sync with PartitionDefinition class gen_partition.py
  */
 typedef enum {
-    pi_PARTITION_TYPE_APP = 0x00,       //!< Application partition type
-    pi_PARTITION_TYPE_DATA = 0x01,      //!< Data partition type
+    PI_PARTITION_TYPE_APP = 0x00,       //!< Application partition type
+    PI_PARTITION_TYPE_DATA = 0x01,      //!< Data partition type
 } pi_partition_type_t;
+
+#define PI_PARTITION_MAX_OTA_SLOTS 16
 
 /**
  * @brief Partition subtype
  * @note Keep this enum in sync with PartitionDefinition class gen_partition.py
  */
 typedef enum {
-    pi_PARTITION_SUBTYPE_APP_FACTORY = 0x00,                                 //!< Factory application partition
-    pi_PARTITION_SUBTYPE_APP_OTA_MIN = 0x10,                                 //!< Base for OTA partition subtypes
-    pi_PARTITION_SUBTYPE_APP_OTA_0 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 0,  //!< OTA partition 0
-    pi_PARTITION_SUBTYPE_APP_OTA_1 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 1,  //!< OTA partition 1
-    pi_PARTITION_SUBTYPE_APP_OTA_2 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 2,  //!< OTA partition 2
-    pi_PARTITION_SUBTYPE_APP_OTA_3 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 3,  //!< OTA partition 3
-    pi_PARTITION_SUBTYPE_APP_OTA_4 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 4,  //!< OTA partition 4
-    pi_PARTITION_SUBTYPE_APP_OTA_5 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 5,  //!< OTA partition 5
-    pi_PARTITION_SUBTYPE_APP_OTA_6 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 6,  //!< OTA partition 6
-    pi_PARTITION_SUBTYPE_APP_OTA_7 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 7,  //!< OTA partition 7
-    pi_PARTITION_SUBTYPE_APP_OTA_8 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 8,  //!< OTA partition 8
-    pi_PARTITION_SUBTYPE_APP_OTA_9 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 9,  //!< OTA partition 9
-    pi_PARTITION_SUBTYPE_APP_OTA_10 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 10,//!< OTA partition 10
-    pi_PARTITION_SUBTYPE_APP_OTA_11 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 11,//!< OTA partition 11
-    pi_PARTITION_SUBTYPE_APP_OTA_12 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 12,//!< OTA partition 12
-    pi_PARTITION_SUBTYPE_APP_OTA_13 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 13,//!< OTA partition 13
-    pi_PARTITION_SUBTYPE_APP_OTA_14 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 14,//!< OTA partition 14
-    pi_PARTITION_SUBTYPE_APP_OTA_15 = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 15,//!< OTA partition 15
-    pi_PARTITION_SUBTYPE_APP_OTA_MAX = pi_PARTITION_SUBTYPE_APP_OTA_MIN + 16,//!< Max subtype of OTA partition
-    pi_PARTITION_SUBTYPE_APP_TEST = 0x20,                                    //!< Test application partition
+    PI_PARTITION_SUBTYPE_APP_FACTORY = 0x00,                                 //!< Factory application partition
+    PI_PARTITION_SUBTYPE_APP_OTA_MIN = 0x10,                                 //!< Base for OTA partition subtypes
+    PI_PARTITION_SUBTYPE_APP_OTA_0 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 0,  //!< OTA partition 0
+    PI_PARTITION_SUBTYPE_APP_OTA_1 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 1,  //!< OTA partition 1
+    PI_PARTITION_SUBTYPE_APP_OTA_2 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 2,  //!< OTA partition 2
+    PI_PARTITION_SUBTYPE_APP_OTA_3 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 3,  //!< OTA partition 3
+    PI_PARTITION_SUBTYPE_APP_OTA_4 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 4,  //!< OTA partition 4
+    PI_PARTITION_SUBTYPE_APP_OTA_5 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 5,  //!< OTA partition 5
+    PI_PARTITION_SUBTYPE_APP_OTA_6 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 6,  //!< OTA partition 6
+    PI_PARTITION_SUBTYPE_APP_OTA_7 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 7,  //!< OTA partition 7
+    PI_PARTITION_SUBTYPE_APP_OTA_8 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 8,  //!< OTA partition 8
+    PI_PARTITION_SUBTYPE_APP_OTA_9 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 9,  //!< OTA partition 9
+    PI_PARTITION_SUBTYPE_APP_OTA_10 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 10,//!< OTA partition 10
+    PI_PARTITION_SUBTYPE_APP_OTA_11 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 11,//!< OTA partition 11
+    PI_PARTITION_SUBTYPE_APP_OTA_12 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 12,//!< OTA partition 12
+    PI_PARTITION_SUBTYPE_APP_OTA_13 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 13,//!< OTA partition 13
+    PI_PARTITION_SUBTYPE_APP_OTA_14 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 14,//!< OTA partition 14
+    PI_PARTITION_SUBTYPE_APP_OTA_15 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 15,//!< OTA partition 15
+    PI_PARTITION_SUBTYPE_APP_OTA_MAX = PI_PARTITION_SUBTYPE_APP_OTA_MIN + PI_PARTITION_MAX_OTA_SLOTS,//!< Max subtype of OTA partition
+    PI_PARTITION_SUBTYPE_APP_TEST = 0x20,                                    //!< Test application partition
 
-    pi_PARTITION_SUBTYPE_DATA_OTA = 0x00,                                    //!< OTA selection partition
-    pi_PARTITION_SUBTYPE_DATA_PHY = 0x01,                                    //!< PHY init data partition
+    PI_PARTITION_SUBTYPE_DATA_OTA = 0x00,                                    //!< OTA selection partition
+    PI_PARTITION_SUBTYPE_DATA_PHY = 0x01,                                    //!< PHY init data partition
 
-    pi_PARTITION_SUBTYPE_DATA_RAW = 0x80,                                    //!< RAW space partition
-    pi_PARTITION_SUBTYPE_DATA_READONLY = 0x81,                               //!< Readonly filesystem partition
-    pi_PARTITION_SUBTYPE_DATA_LFS = 0x82,                                    //!< LittleFS filesystem partition
+    PI_PARTITION_SUBTYPE_DATA_RAW = 0x80,                                    //!< RAW space partition
+    PI_PARTITION_SUBTYPE_DATA_READONLY = 0x81,                               //!< Readonly filesystem partition
+    PI_PARTITION_SUBTYPE_DATA_LFS = 0x82,                                    //!< LittleFS filesystem partition
 
     pi_PARTITION_SUBTYPE_ANY = 0xff,                                         //!< Used to search for partitions with any subtype
 } pi_partition_subtype_t;
+
+/**
+ * @brief Opaque partition iterator type
+ */
+typedef struct pi_partition_iterator_opaque_* pi_partition_iterator_t;
 
 /**
  * @brief partition information structure
