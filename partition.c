@@ -21,8 +21,8 @@
 
 #include "strings.h"
 
-#include "partition.h"
-#include "pi_partition.h"
+#include "bsp/partition.h"
+
 #include "bootloader_utility.h"
-#include "traces.h"
+#include "partition.h"
 

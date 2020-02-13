@@ -25,8 +25,17 @@
 #include "stdbool.h"
 
 #include "pmsis.h"
-#include "bootloader_config.h"
+#include "bsp/flash_partition.h"
 
-bool bootloader_utility_load_partition_table(pi_device_t *flash, bootloader_state_t *bs);
+typedef struct {
+    flash_partition_pos_t ota_info;
+    flash_partition_pos_t factory;
+    flash_partition_pos_t test;
+    flash_partition_pos_t ota[PI_PARTITION_MAX_OTA_SLOTS];
+    uint32_t app_count;
+    uint32_t selected_subtype;
+} bootloader_state_t;
+
+pi_err_t bootloader_utility_fill_state(pi_device_t *flash, bootloader_state_t *bs);
 
 #endif //SSBL_BOOTLOADER_UTILITY_H

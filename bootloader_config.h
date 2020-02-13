@@ -24,16 +24,8 @@
 
 #include "stdint.h"
 
-#include "pi_partition.h"
-#include "pi_flash_partition.h"
+#include "bsp/partition.h"
+#include "bsp/flash_partition.h"
 
-typedef struct {
-    pi_partition_pos_t ota_info;
-    pi_partition_pos_t factory;
-    pi_partition_pos_t test;
-    pi_partition_pos_t ota[PI_PARTITION_MAX_OTA_SLOTS];
-    uint32_t app_count;
-    uint32_t selected_subtype;
-} bootloader_state_t;
 
 #endif //SSBL_BOOTLOADER_CONFIG_H

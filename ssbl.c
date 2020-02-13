@@ -22,11 +22,11 @@
 #include "stdint.h"
 
 #include "pmsis.h"
-#include "pi_errno.h"
 #include "bsp/flash/hyperflash.h"
-#include "bootloader_utility.h"
+#include "bsp/flash_partition.h"
 
-#include "traces.h"
+#include "bootloader_config.h"
+#include "bootloader_utility.h"
 #include "partition.h"
 
 /*
@@ -41,42 +41,44 @@ void open_flash(pi_device_t *flash, struct pi_hyperflash_conf *flash_conf)
 {
     pi_hyperflash_conf_init(flash_conf);
     pi_open_from_conf(flash, flash_conf);
-
-    if (pi_flash_open(flash) < 0)
+    
+    if(pi_flash_open(flash) < 0)
     {
-        SSBL_TRACE("Error: unable to open flash device");
+        SSBL_ERR("unable to open flash device");
         pmsis_exit(PI_FAIL);
     }
-
+    
 }
 
 void boot_to_flash_app(pi_device_t *flash)
 {
+    pi_err_t rc;
     bootloader_state_t bs = {0};
-
-    SSBL_TRACE("Boot to flash app");
-
-    SSBL_TRACE("Load partition table from flash");
-    if (!bootloader_utility_load_partition_table(flash, &bs))
+    
+    SSBL_INF("Boot to flash app");
+    
+    SSBL_INF("Load partition table from flash");
+    rc = bootloader_utility_fill_state(flash, &bs);
+    if (rc != PI_OK)
     {
-        SSBL_TRACE("Error to find bootable partition.");
+        SSBL_ERR("bootable partition not found.");
         pmsis_exit(PI_FAIL);
     }
 }
 
 void ssbl(void)
 {
-    SSBL_TRACE("GAP Second Stage Boot Loader start");
-
-    SSBL_TRACE("Open flash...");
+    SSBL_INF("GAP Second Stage Boot Loader start");
+    
+    SSBL_INF("Open flash...");
     open_flash(&flash, &flash_conf);
-    SSBL_TRACE("Open flash done.");
-
+    SSBL_INF("Open flash done.");
+    
     boot_to_flash_app(&flash);
-
+    
     pi_flash_close(&flash);
-
-    SSBL_TRACE("Second Stage Boot Loader exit!");
+    
+    SSBL_INF("Second Stage Boot Loader exit!");
     pmsis_exit(0);
 }
 

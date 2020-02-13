@@ -5,9 +5,8 @@ set(CMAKE_C_STANDARD 11)
 
 include_directories(/g/bsp/include)
 include_directories(/g/api/include)
-include_directories(/g/driver)
+include_directories(/g/implem)
 
-add_definitions(PMSIS_DRIVERS)
 
 add_executable(ssbl
         ssbl.c

@@ -6,19 +6,13 @@ APP              = ssbl
 APP_SRCS        += \
     ssbl.c \
     partition.c \
-    pi_partition.c \
-    bootloader_utility.c \
-    pi_flash_partition.c \
-    md5.c
+    bootloader_utility.c
+
 APP_INC         +=
-APP_CFLAGS      += -Wall -Werror -Wextra -D SSBL_YES_TRACE
+APP_CFLAGS      += -Wall -Werror -Wextra -DPI_LOG_DEFAULT_LEVEL=5 -DPI_LOG_NO_CORE_ID
+
 
 platform = gvsoc
-
-#
-# Includes
-#
-include $(GAP_SDK_HOME)/tools/rules/pmsis_rules.mk
 
 #
 # Local variables
@@ -28,20 +22,7 @@ MAKEFILE_DIR_PATH := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 FLASH_DATA := data.img
 FLASH_DATA_PATH := $(MAKEFILE_DIR_PATH)$(FLASH_DATA)
 
-SSBL_ELF = $(BUILDDIR)/test
-RGV_DIR = gvsoc
-FLASH_IMG_NAME = flash.img
-FLASH_IMG = $(RGV_DIR)/$(FLASH_IMG_NAME)
-buildFlashImage = /home/raifer/gapy/build_flash_image.py
-
-
-#
-# Targets
-#
-img: $(FLASH_IMG)
-$(FLASH_IMG): partitions.csv $(buildFlashImage) $(APP_SRCS)
-	python3 $(buildFlashImage) --partition-table $< $(SSBL_ELF) -o $@
-
+PARTITION_TABLE = factory.csv
 
 rgv: $(FLASH_IMG) | $(RGV_DIR)
 	gvsoc --config=gapuino \
@@ -54,3 +35,7 @@ $(RGV_DIR):
 	mkdir -p $@
 
 
+#
+# Includes
+#
+include $(GAP_SDK_HOME)/tools/rules/pmsis_rules.mk

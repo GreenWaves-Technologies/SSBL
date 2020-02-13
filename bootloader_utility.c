@@ -19,32 +19,30 @@
  * on 1/6/2020.
  */
 
-#include "pi_errno.h"
-#include "pi_flash_partition.h"
+#include "bsp/flash_partition.h"
 #include "bootloader_utility.h"
 
-extern void print_partition_table(const pi_partition_info_t *table);
 
-bool bootloader_utility_load_partition_table(pi_device_t *flash, bootloader_state_t *bs)
+pi_err_t bootloader_utility_fill_state(pi_device_t *flash, bootloader_state_t *bs)
 {
-    const pi_partition_info_t *table = NULL;
-    const char *partition_usage;
     pi_err_t rc;
+    const flash_partition_table_t *table = NULL;
+    const char *partition_usage;
     uint8_t nbr_of_partitions;
 
-    rc = pi_partition_table_load(flash, &table, &nbr_of_partitions);
+    rc = flash_partition_table_load(flash, &table, &nbr_of_partitions);
     if (rc != PI_OK)
     {
-        puts("Failed to verify partition table");
-        return false;
+        SSBL_ERR("Partition table can not be loaded.");
+        return PI_FAIL;
     }
 
-    puts("Partition Table:");
-    printf("## Label            SSBL usage     Type ST   Offset   Length\n");
+    SSBL_INF("Partition Table:");
+    SSBL_INF("## Label            SSBL usage     Type ST   Offset   Length\n");
 
     for (uint8_t i = 0; i < nbr_of_partitions; i++)
     {
-        const pi_partition_info_t *partition = table + i;
+        const flash_partition_info_t *partition = table->partitions + i;
         partition_usage = "unknown";
 
         /* valid partition table */
@@ -91,13 +89,13 @@ bool bootloader_utility_load_partition_table(pi_device_t *flash, bootloader_stat
                 break;
         }
 
-        printf("%2d %-16s %-16s %02x %02x   %08lx %08lx\n",
+        SSBL_INF("%2d %-16s %-16s %02x %02x   %08lx %08lx\n",
                i, partition->label, partition_usage,
                partition->type, partition->subtype,
                partition->pos.offset, partition->pos.size);
     }
 
 
-    printf("End of partition table\n");
-    return true;
+    SSBL_INF("End of partition table\n");
+    return PI_OK;
 }
