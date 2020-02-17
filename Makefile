@@ -23,6 +23,15 @@ FLASH_DATA := data.img
 FLASH_DATA_PATH := $(MAKEFILE_DIR_PATH)$(FLASH_DATA)
 
 PARTITION_TABLE = factory.csv
+FACTORY_APP_NAME = hello
+FACTORY_BIN = $(FACTORY_APP_NAME).bin
+FACTORY_ELF = $(FACTORY_APP_NAME).elf
+
+FLASH_DEPS += $(FACTORY_BIN)
+GEN_FLASH_IMAGE_FLAGS += -p factory $(FACTORY_BIN)
+
+$(FACTORY_BIN): $(FACTORY_ELF)
+	gapy elf2bin $<
 
 rgv: $(FLASH_IMG) | $(RGV_DIR)
 	gvsoc --config=gapuino \

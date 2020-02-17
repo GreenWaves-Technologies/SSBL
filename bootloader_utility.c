@@ -19,7 +19,8 @@
  * on 1/6/2020.
  */
 
-#include "bsp/flash_partition.h"
+#include "string.h"
+
 #include "bootloader_utility.h"
 
 
@@ -98,4 +99,19 @@ pi_err_t bootloader_utility_fill_state(pi_device_t *flash, bootloader_state_t *b
 
     SSBL_INF("End of partition table\n");
     return PI_OK;
+}
+
+void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_pos_t *partition_pos)
+{
+	static PI_L2 bin_desc_t bin_desc;
+	bin_header_t *header = NULL;
+	
+	memset(&bin_desc, 0, sizeof(bin_desc_t));
+	pi_flash_read(flash, partition_pos->offset, &bin_desc, sizeof(bin_desc_t));
+	
+	header = &bin_desc.header;
+	SSBL_DBG("Nbr of segments: %ld", header->nb_segments);
+	
+//    aes_init = 1;
+    
 }

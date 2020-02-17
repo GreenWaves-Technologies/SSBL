@@ -23,9 +23,30 @@
 #define SSBL_BOOTLOADER_UTILITY_H
 
 #include "stdbool.h"
+#include "stdint.h"
 
 #include "pmsis.h"
 #include "bsp/flash_partition.h"
+#include "bsp/partition.h"
+
+#define MAX_NB_SEGMENT 16
+
+typedef struct {
+	uint32_t start;
+	uint32_t ptr;
+	uint32_t size;
+} bin_segment_t;
+
+typedef struct {
+	uint32_t nb_segments;
+	uint32_t entry;
+} bin_header_t;
+
+typedef struct {
+	bin_header_t header;
+	bin_segment_t segments[MAX_NB_SEGMENT];
+	uint32_t crc;
+} bin_desc_t;
 
 typedef struct {
     flash_partition_pos_t ota_info;
@@ -37,5 +58,13 @@ typedef struct {
 } bootloader_state_t;
 
 pi_err_t bootloader_utility_fill_state(pi_device_t *flash, bootloader_state_t *bs);
+void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_pos_t *partition_pos);
+
+static inline void __attribute__((noreturn)) jump_to_address(unsigned int address) {
+    void (*entry)() = (void (*)())(address);
+    entry();
+    while(1);
+}
+
 
 #endif //SSBL_BOOTLOADER_UTILITY_H

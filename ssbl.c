@@ -42,6 +42,8 @@ void open_flash(pi_device_t *flash, struct pi_hyperflash_conf *flash_conf)
     pi_hyperflash_conf_init(flash_conf);
     pi_open_from_conf(flash, flash_conf);
     
+//    if (conf.info3.flash_type) blockSize = HYPER_FLASH_BLOCK_SIZE;
+    
     if(pi_flash_open(flash) < 0)
     {
         SSBL_ERR("unable to open flash device");
@@ -64,6 +66,8 @@ void boot_to_flash_app(pi_device_t *flash)
         SSBL_ERR("bootable partition not found.");
         pmsis_exit(PI_FAIL);
     }
+    
+    bootloader_utility_boot_from_partition(flash, &bs.factory);
 }
 
 void ssbl(void)
