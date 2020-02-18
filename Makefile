@@ -15,6 +15,7 @@ APP_CFLAGS      += -Wall -Werror -Wextra \
 LD_SCRIPT = ssbl-GAP8.ld
 
 platform = gvsoc
+PMSIS_OS = freertos
 
 #
 # Local variables
