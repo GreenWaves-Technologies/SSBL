@@ -24,7 +24,8 @@ MAKEFILE_DIR_PATH := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 FLASH_DATA := data.img
 FLASH_DATA_PATH := $(MAKEFILE_DIR_PATH)$(FLASH_DATA)
 
-PARTITION_TABLE = factory.csv
+#PARTITION_TABLE = factory.csv
+PARTITION_TABLE = ota.csv
 
 FACTORY_APP_NAME = factory
 FACTORY_BIN = $(FACTORY_APP_NAME).bin
