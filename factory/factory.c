@@ -12,7 +12,6 @@ void factory(void)
 int main(void)
 {
     printf("\n\n\t *** PMSIS Factory App ***\n\n");
-//    factory();
     pmsis_kickoff((void *) factory);
 }
 
