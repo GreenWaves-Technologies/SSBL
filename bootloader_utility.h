@@ -30,6 +30,7 @@
 #include "bsp/partition.h"
 
 #define MAX_NB_SEGMENT 16
+#define L2_BUFFER_SIZE 4096
 
 typedef struct {
 	uint32_t start;

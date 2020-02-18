@@ -20,98 +20,146 @@
  */
 
 #include "string.h"
+#include "stdbool.h"
 
 #include "bootloader_utility.h"
 
 
 pi_err_t bootloader_utility_fill_state(pi_device_t *flash, bootloader_state_t *bs)
 {
-    pi_err_t rc;
-    const flash_partition_table_t *table = NULL;
-    const char *partition_usage;
-    uint8_t nbr_of_partitions;
+	pi_err_t rc;
+	const flash_partition_table_t *table = NULL;
+	const char *partition_usage;
+	uint8_t nbr_of_partitions;
+	
+	rc = flash_partition_table_load(flash, &table, &nbr_of_partitions);
+	if(rc != PI_OK)
+	{
+		SSBL_ERR("Partition table can not be loaded.");
+		return PI_FAIL;
+	}
+	
+	SSBL_INF("Partition Table:");
+	SSBL_INF("## Label            SSBL usage     Type ST   Offset   Length\n");
+	
+	for (uint8_t i = 0; i < nbr_of_partitions; i++)
+	{
+		const flash_partition_info_t *partition = table->partitions + i;
+		partition_usage = "unknown";
+		
+		/* valid partition table */
+		switch (partition->type)
+		{
+			case PI_PARTITION_TYPE_APP:
+				switch (partition->subtype)
+				{
+					case PI_PARTITION_SUBTYPE_APP_FACTORY:
+						bs->factory = partition->pos;
+						partition_usage = "factory app";
+						break;
+					case PI_PARTITION_SUBTYPE_APP_TEST:
+						bs->test = partition->pos;
+						partition_usage = "test app";
+						break;
+					default:
+						/* OTA binary */
+						if((partition->subtype & ~PART_SUBTYPE_OTA_MASK) == PART_SUBTYPE_OTA_FLAG)
+						{
+							bs->ota[partition->subtype & PART_SUBTYPE_OTA_MASK] = partition->pos;
+							bs->app_count++;
+							partition_usage = "OTA app";
+						} else
+						{
+							partition_usage = "Unknown app";
+						}
+						break;
+				}
+				break; /* PART_TYPE_APP */
+			case PI_PARTITION_TYPE_DATA:
+				switch (partition->subtype)
+				{
+					case PI_PARTITION_SUBTYPE_DATA_OTA: /* ota data */
+						bs->ota_info = partition->pos;
+						partition_usage = "OTA data";
+						break;
+					default:
+						partition_usage = "Unknown data";
+						break;
+				}
+				break; /* PARTITION_USAGE_DATA */
+			default: /* other partition type */
+				break;
+		}
+		
+		SSBL_INF("%2d %-16s %-16s %02x %02x   %08lx %08lx\n",
+		         i, partition->label, partition_usage,
+		         partition->type, partition->subtype,
+		         partition->pos.offset, partition->pos.size);
+	}
+	
+	
+	SSBL_INF("End of partition table\n");
+	return PI_OK;
+}
 
-    rc = flash_partition_table_load(flash, &table, &nbr_of_partitions);
-    if (rc != PI_OK)
-    {
-        SSBL_ERR("Partition table can not be loaded.");
-        return PI_FAIL;
-    }
+static void load_segment(pi_device_t *flash, flash_partition_pos_t *partition_pos, bin_segment_t *segment)
+{
+	static PI_L2 uint8_t
+	l2_buffer[L2_BUFFER_SIZE];
 
-    SSBL_INF("Partition Table:");
-    SSBL_INF("## Label            SSBL usage     Type ST   Offset   Length\n");
+//	int encrypted = conf.info.encrypted;
+	
+	bool isL2Section = segment->ptr >= 0x1C000000 && segment->ptr < 0x1D000000;
+	
+	if(isL2Section)
+	{
+		SSBL_INF("Load segment to L2 memory at 0x%lX", segment->ptr);
+		pi_flash_read(flash, partition_pos->offset + segment->start, (void *) segment->ptr, segment->size);
+	} else
+	{
+		
+		SSBL_INF("Load segment to FC TCDM memory at 0xlX (using a L2 buffer).", segment->ptr);
+		size_t remaining_size = segment->size;
+		while (remaining_size > 0)
+		{
+			size_t iter_size = (remaining_size > L2_BUFFER_SIZE) ? L2_BUFFER_SIZE : remaining_size;
+			SSBL_INF("Remaining size 0x%lX, it size %lu", remaining_size, iter_size);
+			pi_flash_read(flash, partition_pos->offset + segment->start, l2_buffer, iter_size);
+			memcpy((void *) segment->ptr, (void *) l2_buffer, iter_size);
+			remaining_size -= iter_size;
+		}
+		
+	}
 
-    for (uint8_t i = 0; i < nbr_of_partitions; i++)
-    {
-        const flash_partition_info_t *partition = table->partitions + i;
-        partition_usage = "unknown";
-
-        /* valid partition table */
-        switch (partition->type)
-        {
-            case PI_PARTITION_TYPE_APP:
-                switch (partition->subtype)
-                {
-                    case PI_PARTITION_SUBTYPE_APP_FACTORY:
-                        bs->factory = partition->pos;
-                        partition_usage = "factory app";
-                        break;
-                    case PI_PARTITION_SUBTYPE_APP_TEST:
-                        bs->test = partition->pos;
-                        partition_usage = "test app";
-                        break;
-                    default:
-                        /* OTA binary */
-                        if ((partition->subtype & ~PART_SUBTYPE_OTA_MASK) == PART_SUBTYPE_OTA_FLAG)
-                        {
-                            bs->ota[partition->subtype & PART_SUBTYPE_OTA_MASK] = partition->pos;
-                            bs->app_count++;
-                            partition_usage = "OTA app";
-                        } else
-                        {
-                            partition_usage = "Unknown app";
-                        }
-                        break;
-                }
-                break; /* PART_TYPE_APP */
-            case PI_PARTITION_TYPE_DATA:
-                switch (partition->subtype)
-                {
-                    case PI_PARTITION_SUBTYPE_DATA_OTA: /* ota data */
-                        bs->ota_info = partition->pos;
-                        partition_usage = "OTA data";
-                        break;
-                    default:
-                        partition_usage = "Unknown data";
-                        break;
-                }
-                break; /* PARTITION_USAGE_DATA */
-            default: /* other partition type */
-                break;
-        }
-
-        SSBL_INF("%2d %-16s %-16s %02x %02x   %08lx %08lx\n",
-               i, partition->label, partition_usage,
-               partition->type, partition->subtype,
-               partition->pos.offset, partition->pos.size);
-    }
-
-
-    SSBL_INF("End of partition table\n");
-    return PI_OK;
+//	aes_unencrypt(area->ptr, area->size);
 }
 
 void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_pos_t *partition_pos)
 {
-	static PI_L2 bin_desc_t bin_desc;
-	bin_header_t *header = NULL;
+	static PI_L2 bin_desc_t
+	bin_desc;
 	
-	memset(&bin_desc, 0, sizeof(bin_desc_t));
 	pi_flash_read(flash, partition_pos->offset, &bin_desc, sizeof(bin_desc_t));
-	
-	header = &bin_desc.header;
-	SSBL_DBG("Nbr of segments: %ld", header->nb_segments);
-	
+
 //    aes_init = 1;
-    
+//	aes_unencrypt((unsigned int)&flash_desc, sizeof(flash_desc_t));
+	SSBL_INF("App header: nbr of segments %lu, entry point 0x%lx", bin_desc.header.nb_segments,
+	         bin_desc.header.entry);
+	
+	for (uint8_t i = 0; i < bin_desc.header.nb_segments; i++)
+	{
+		bin_segment_t *seg = bin_desc.segments + i;
+		SSBL_INF("Load segment %u: flash offset 0x%lX - size 0x%lX",
+		         i, seg->start, seg->size);
+		load_segment(flash, partition_pos, seg);
+	}
+	
+	SSBL_INF("Boot to app entry point at 0x%lX", bin_desc.header.entry);
+	
+	uint32_t *ins = (uint32_t *) bin_desc.header.entry;
+	for (size_t i = 0; i < 2; i++)
+	{
+		printf("@0x%lX 0x%lX\n", ins + i, ins[i]);
+	}
+	jump_to_address(bin_desc.header.entry);
 }
