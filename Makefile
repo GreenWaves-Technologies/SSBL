@@ -43,17 +43,6 @@ factory/BUILD/GAP8_V2/GCC_RISCV/test: factory/factory.c factory/Makefile
 $(FACTORY_BIN): $(FACTORY_ELF)
 	gapy elf2bin $<
 
-rgv: $(FLASH_IMG) | $(RGV_DIR)
-	gvsoc --config=gapuino \
-	--dir=$(RGV_DIR) \
-	--config-opt **/flash/preload_file=$(FLASH_IMG_NAME) \
-	--config-opt=**/runner/boot_from_flash=false \
-	prepare run
-
-$(RGV_DIR):
-	mkdir -p $@
-
-
 #
 # Includes
 #
