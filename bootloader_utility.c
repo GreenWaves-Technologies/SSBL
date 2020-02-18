@@ -156,10 +156,5 @@ void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_
 	
 	SSBL_INF("Boot to app entry point at 0x%lX", bin_desc.header.entry);
 	
-	uint32_t *ins = (uint32_t *) bin_desc.header.entry;
-	for (size_t i = 0; i < 2; i++)
-	{
-		printf("@0x%lX 0x%lX\n", ins + i, ins[i]);
-	}
 	jump_to_address(bin_desc.header.entry);
 }
