@@ -23,6 +23,6 @@
 
 #include "bsp/partition.h"
 
-#include "bootloader_utility.h"
+#include "bsp/bootloader_utility.h"
 #include "partition.h"
 

@@ -26,7 +26,7 @@
 #include "bsp/flash_partition.h"
 
 #include "bootloader_config.h"
-#include "bootloader_utility.h"
+#include "bsp/bootloader_utility.h"
 #include "partition.h"
 
 /*

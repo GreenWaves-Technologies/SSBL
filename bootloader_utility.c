@@ -22,7 +22,7 @@
 #include "string.h"
 #include "stdbool.h"
 
-#include "bootloader_utility.h"
+#include "bsp/bootloader_utility.h"
 
 
 pi_err_t bootloader_utility_fill_state(pi_device_t *flash, bootloader_state_t *bs)
