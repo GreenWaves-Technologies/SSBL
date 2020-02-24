@@ -53,17 +53,18 @@ __IRQ_STACK_SIZE     = 0x400;
 
 SECTIONS
 {
+    /* This section containing debug structure. */
     /* This section holds IRQ vectors table. */
     .vectors_irq :
     {
         . = ALIGN(4);
+        . = . + 0x60000;
         __irq_vector_base_m__ = .;
         KEEP(*(.vectors_irq))
     } > L2
 
     /* This section holds code of program. */
     .text : {
-    . = . + 0x60000;
         . = ALIGN(4);
         _stext = .;
         *(.text.reset)
