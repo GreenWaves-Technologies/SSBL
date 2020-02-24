@@ -58,13 +58,13 @@ SECTIONS
     .vectors_irq :
     {
         . = ALIGN(4);
-        . = . + 0x60000;
         __irq_vector_base_m__ = .;
         KEEP(*(.vectors_irq))
     } > L2
 
     /* This section holds code of program. */
     .text : {
+        . = . + 0x60000;
         . = ALIGN(4);
         _stext = .;
         *(.text.reset)
