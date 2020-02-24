@@ -164,10 +164,8 @@ static void load_segment(pi_device_t *flash, flash_partition_pos_t *partition_po
 
 void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_pos_t *partition_pos)
 {
-    static PI_L2 bin_desc_t
-    bin_desc;
-    static PI_L2 uint8_t
-    buff[0x94];
+    static PI_L2 bin_desc_t bin_desc;
+    static PI_L2 uint8_t buff[0x94];
     
     // Load binary header
     pi_flash_read(flash, partition_pos->offset, &bin_desc, sizeof(bin_desc_t));
@@ -183,8 +181,7 @@ void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_
         bin_segment_t *seg = bin_desc.segments + i;
         SSBL_INF("Load segment %u: flash offset 0x%lX - size 0x%lX",
                  i, seg->start, seg->size);
-
-#ifdef DIFFER_IRQ_TABLE_COPY
+        
         // Skip interrupt table entries
         if(seg->ptr == 0x1C000000)
         {
@@ -194,32 +191,31 @@ void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_
             seg->start += 0x94;
             seg->size -= 0x94;
         }
-#endif
         
         load_segment(flash, partition_pos, seg);
     }
     
-    // Disable IRQ to copy IRQ table and jump to app.
-    disable_irq();
-
-#ifdef DIFFER_IRQ_TABLE_COPY
-    uint8_t * ptr = (void *) 0x1C000000;
-        for (size_t i = 0; i < 0x94; i++)
-        {
-            ptr[i] = buff[i];
-        }
-#endif
     
-    SSBL_INF("Boot to app entry point at 0x%lX", bin_desc.header.entry);
+    SSBL_INF("Close flash");
+    pi_flash_close(flash);
     
     // Restore Pad func and config.
-    pad_print();
+    SSBL_INF("Restore PAD configuration");
     restore_pad_func_and_cfg();
-    pad_print();
+    
+    SSBL_INF("Disable IRQ to copy IRQ table and jump to app.");
+    disable_irq();
+    
+    uint8_t * ptr = (uint8_t *) 0x1C000000;
+    for (size_t i = 0; i < 0x94; i++)
+    {
+        ptr[i] = buff[i];
+    }
     
     // Flush instruction cache
     SCBC_Type *icache = SCBC;
     icache->ICACHE_FLUSH = 1;
-    
+
+//        SSBL_INF("Boot to app entry point at 0x%lX", bin_desc.header.entry);
     jump_to_address(bin_desc.header.entry);
 }
