@@ -1,10 +1,6 @@
 BUILD/
 .idea
 
-gvsoc/all_state.txt
-gvsoc/core_state.txt
-gvsoc/rt_state.txt
-gvsoc/tx_uart.log
-gvsoc/plt_config.json
 cmake-build-debug/
-gvsoc/flash.img
+factory.bin
+factory.elf
