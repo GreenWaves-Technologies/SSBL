@@ -33,20 +33,20 @@
 #define L2_BUFFER_SIZE 4096
 
 typedef struct {
-	uint32_t start;
-	uint32_t ptr;
-	uint32_t size;
+    uint32_t start;
+    uint32_t ptr;
+    uint32_t size;
 } bin_segment_t;
 
 typedef struct {
-	uint32_t nb_segments;
-	uint32_t entry;
+    uint32_t nb_segments;
+    uint32_t entry;
 } bin_header_t;
 
 typedef struct {
-	bin_header_t header;
-	bin_segment_t segments[MAX_NB_SEGMENT];
-	uint32_t crc;
+    bin_header_t header;
+    bin_segment_t segments[MAX_NB_SEGMENT];
+    uint32_t crc;
 } bin_desc_t;
 
 typedef struct {
@@ -58,14 +58,19 @@ typedef struct {
     uint32_t selected_subtype;
 } bootloader_state_t;
 
+void sav_pad_func_and_cfg();
+
+void restore_pad_func_and_cfg();
+
 pi_err_t bootloader_utility_fill_state(pi_device_t *flash, bootloader_state_t *bs);
+
 void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_pos_t *partition_pos);
 
-static inline void __attribute__((noreturn)) jump_to_address(unsigned int address) {
-    void (*entry)() = (void (*)())(address);
+static inline void __attribute__((noreturn)) jump_to_address(unsigned int address)
+{
+    void (*entry)() = (void (*)()) (address);
     entry();
-    while(1);
+    while (1);
 }
-
 
 #endif //SSBL_BOOTLOADER_UTILITY_H

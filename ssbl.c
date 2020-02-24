@@ -41,7 +41,7 @@ void open_flash(pi_device_t *flash, struct pi_hyperflash_conf *flash_conf)
 {
     pi_hyperflash_conf_init(flash_conf);
     pi_open_from_conf(flash, flash_conf);
-    
+
 //    if (conf.info3.flash_type) blockSize = HYPER_FLASH_BLOCK_SIZE;
     
     if(pi_flash_open(flash) < 0)
@@ -61,7 +61,7 @@ void boot_to_flash_app(pi_device_t *flash)
     
     SSBL_INF("Load partition table from flash");
     rc = bootloader_utility_fill_state(flash, &bs);
-    if (rc != PI_OK)
+    if(rc != PI_OK)
     {
         SSBL_ERR("bootable partition not found.");
         pmsis_exit(PI_FAIL);
@@ -86,8 +86,11 @@ void ssbl(void)
     pmsis_exit(0);
 }
 
-/* Program Entry. */
+
 int main(void)
 {
+    
+    sav_pad_func_and_cfg();
+    
     return pmsis_kickoff((void *) ssbl);
 }

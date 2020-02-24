@@ -12,9 +12,11 @@ APP_INC         +=
 APP_CFLAGS      += -Wall -Werror -Wextra \
     -DPI_LOG_DEFAULT_LEVEL=5 -DPI_LOG_NO_CORE_ID
 
-LD_SCRIPT = ssbl-GAP8.ld
+APP_LINK_SCRIPT = ssbl-GAP8.ld
+all:: $(LD_SCRIPT)
 
 platform = gvsoc
+io=host
 PMSIS_OS = freertos
 
 #
@@ -39,7 +41,7 @@ $(FACTORY_ELF): factory/BUILD/GAP8_V2/GCC_RISCV/test
 	cp $< $@
 
 factory/BUILD/GAP8_V2/GCC_RISCV/test: factory/factory.c factory/Makefile
-	cd factory && make -j8 all;  cd ..
+	cd factory && make all;  cd ..
 
 $(FACTORY_BIN): $(FACTORY_ELF)
 	gapy elf2bin $<
