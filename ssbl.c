@@ -57,8 +57,6 @@ void boot_to_flash_app(pi_device_t *flash)
     pi_err_t rc;
     bootloader_state_t bs = {0};
     
-    SSBL_INF("Boot to flash app");
-    
     SSBL_INF("Load partition table from flash");
     rc = bootloader_utility_fill_state(flash, &bs);
     if(rc != PI_OK)
@@ -67,7 +65,16 @@ void boot_to_flash_app(pi_device_t *flash)
         pmsis_exit(PI_FAIL);
     }
     
-    bootloader_utility_boot_from_partition(flash, &bs.factory);
+    int index = bootloader_utility_get_selected_boot_partition(flash, &bs);
+    
+    if(index == FACTORY_INDEX)
+    {
+        SSBL_INF("Boot to factory partition:");
+        bootloader_utility_boot_from_partition(flash, &bs.factory);
+    }
+    
+    SSBL_ERR("Unable to boot to an app.");
+    pmsis_exit(-1);
 }
 
 void ssbl(void)

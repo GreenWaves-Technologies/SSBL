@@ -6,7 +6,8 @@ APP              = ssbl
 APP_SRCS        += \
     ssbl.c \
     partition.c \
-    bootloader_utility.c
+    bootloader_utility.c \
+    ota_utility.c
 
 APP_INC         +=
 APP_CFLAGS      += -Wall -Werror -Wextra \
