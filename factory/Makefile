@@ -7,7 +7,8 @@ APP_INC	        +=
 APP_CFLAGS      +=
 
 
-#PMSIS_OS=freertos
+io=host
+PMSIS_OS=freertos
 platform = gvsoc
 
 
