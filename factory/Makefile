@@ -1,4 +1,4 @@
-# User Test
+# Factory app
 #------------------------------------
 SHELL = /bin/bash
 APP              = factory
@@ -9,7 +9,6 @@ APP_CFLAGS      +=
 
 io=host
 PMSIS_OS=freertos
-platform = gvsoc
 
 
 
