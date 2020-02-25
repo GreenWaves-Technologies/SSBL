@@ -133,8 +133,9 @@ void restore_pad_func_and_cfg()
 
 static void load_segment(pi_device_t *flash, flash_partition_pos_t *partition_pos, bin_segment_t *segment)
 {
-    static PI_L2 uint8_t l2_buffer[L2_BUFFER_SIZE];
-    
+    static PI_L2 uint8_t
+    l2_buffer[L2_BUFFER_SIZE];
+
 //	int encrypted = conf.info.encrypted;
     
     bool isL2Section = segment->ptr >= 0x1C000000 && segment->ptr < 0x1D000000;
@@ -157,18 +158,21 @@ static void load_segment(pi_device_t *flash, flash_partition_pos_t *partition_po
             remaining_size -= iter_size;
         }
     }
-    
+
 //	aes_unencrypt(area->ptr, area->size);
 }
 
 void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_pos_t *partition_pos)
 {
-    static PI_L2 bin_desc_t bin_desc;
-    static PI_L2 uint8_t buff[0x94];
+    static PI_L2
+    bin_desc_t bin_desc;
+    static PI_L2 uint8_t
+    buff[0x94];
+    bool differ_copy_of_irq_table;
     
     // Load binary header
     pi_flash_read(flash, partition_pos->offset, &bin_desc, sizeof(bin_desc_t));
-    
+
 //    aes_init = 1;
 //	aes_unencrypt((unsigned int)&flash_desc, sizeof(flash_desc_t));
     
@@ -184,7 +188,8 @@ void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_
         // Skip interrupt table entries
         if(seg->ptr == 0x1C000000)
         {
-            SSBL_TRC("Skip irq table");
+            differ_copy_of_irq_table = true;
+            SSBL_TRC("Differ the copy of irq table");
             pi_flash_read(flash, partition_pos->offset + seg->start, (void *) buff, 0x94);
             seg->ptr += 0x94;
             seg->start += 0x94;
@@ -195,30 +200,35 @@ void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_
     }
     
     
-    SSBL_INF("Close flash");
+    SSBL_TRC("Close flash");
     pi_flash_close(flash);
     
     // Restore Pad func and config.
-    SSBL_INF("Restore PAD configuration");
+    SSBL_TRC("Restore PAD configuration");
     restore_pad_func_and_cfg();
     
-    SSBL_INF("Disable IRQ to copy IRQ table and jump to app.");
+    SSBL_TRC("Disable global IRQ and timer interrupt");
     disable_irq();
+    NVIC_DisableIRQ(SYSTICK_IRQN);
     
-    uint8_t *ptr = (uint8_t * )
-    0x1C000000;
-    for (size_t i = 0; i < 0x94; i++)
+    if(differ_copy_of_irq_table)
     {
-        ptr[i] = buff[i];
+        SSBL_TRC("Copy IRQ table whithout uDMA.");
+        uint8_t *ptr = (uint8_t * )
+        0x1C000000;
+        for (size_t i = 0; i < 0x94; i++)
+        {
+            ptr[i] = buff[i];
+        }
     }
     
     // Flush instruction cache
+    SSBL_TRC("Flush icache");
     SCBC_Type *icache = SCBC;
     icache->ICACHE_FLUSH = 1;
-
-//        SSBL_INF("Boot to app entry point at 0x%lX", bin_desc.header.entry);
-    jump_to_address(bin_desc.header.entry);
     
+    SSBL_INF("Jump to app entry point at 0x%lX", bin_desc.header.entry);
+    jump_to_address(bin_desc.header.entry);
 }
 
 int bootloader_utility_get_selected_boot_partition(pi_device_t *flash, const bootloader_state_t *bs)
