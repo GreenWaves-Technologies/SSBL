@@ -28,6 +28,7 @@
 #include "bootloader_config.h"
 #include "bsp/bootloader_utility.h"
 #include "partition.h"
+#include "bsp/ota_utility.h"
 
 /*
  * Global variables
@@ -50,6 +51,42 @@ void open_flash(pi_device_t *flash, struct pi_hyperflash_conf *flash_conf)
         pmsis_exit(PI_FAIL);
     }
     
+}
+
+void ota_state_is_valid_test()
+{
+    ota_state_t state;
+    
+    printf("Whole struct is set to 0xFF\n");
+    memset(&state, 0xFF, sizeof(ota_state_t));
+    bool ok = ota_utility_state_is_valid(&state);
+    printf("state is %s\n", ok ? "ok" : "bad");
+    
+    printf("seq --\n");
+    state.seq--;
+    ok = ota_utility_state_is_valid(&state);
+    printf("state is %s\n", ok ? "ok" : "bad");
+    
+    printf("data size = 0\n");
+    state.data_size = 0;
+    ok = ota_utility_state_is_valid(&state);
+    printf("state is %s\n", ok ? "ok" : "bad");
+    
+    printf("compute md5\n");
+    ota_utility_compute_md5(&state, state.md5);
+    ok = ota_utility_state_is_valid(&state);
+    printf("state is %s\n", ok ? "ok" : "bad");
+    
+    printf("Add data\n");
+    state.data_size = 4;
+    state.update_data = (void *) 42;
+    ota_utility_compute_md5(&state, state.md5);
+    ok = ota_utility_state_is_valid(&state);
+    printf("state is %s\n", ok ? "ok" : "bad");
+    printf("data read %lu\n", (uint32_t) state.update_data);
+    
+    
+    exit(0);
 }
 
 void boot_to_flash_app(pi_device_t *flash)
