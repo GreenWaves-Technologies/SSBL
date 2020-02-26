@@ -92,26 +92,37 @@ void ota_state_is_valid_test()
 void boot_to_flash_app(pi_device_t *flash)
 {
     pi_err_t rc;
-    bootloader_state_t bs = {0};
+    bootloader_state_t bs;
+    const flash_partition_table_t *table;
     
     SSBL_INF("Load partition table from flash");
-    rc = bootloader_utility_fill_state(flash, &bs);
-    if(rc != PI_OK)
+    rc = flash_partition_table_load(flash, &table, NULL);
+    if (rc != PI_OK)
     {
-        SSBL_ERR("bootable partition not found.");
-        pmsis_exit(PI_FAIL);
+        SSBL_ERR("Unable to load partition table from flash (error %d). Abort bootloader.", rc);
+        // Todo maybe restart.
+        pmsis_exit(PI_ERR_NOT_FOUND);
     }
     
-    int index = bootloader_utility_get_selected_boot_partition(flash, &bs);
+    rc = bootloader_utility_fill_state(table, &bs);
+    if(rc != PI_OK)
+    {
+        SSBL_ERR("Unable to fill bootloader state from partition table. Abort bootloader.");
+        // todo restart
+        pmsis_exit(PI_ERR_NOT_FOUND);
+    }
     
-    if(index == FACTORY_INDEX)
+    pi_partition_subtype_t boot_type = bootloader_utility_get_boot_partition(table, &bs);
+    flash_partition_table_free(table);
+    
+    if(boot_type == PI_PARTITION_SUBTYPE_APP_FACTORY)
     {
         SSBL_INF("Boot to factory partition:");
-        bootloader_utility_boot_from_partition(flash, &bs.factory);
+        bootloader_utility_boot_from_partition(flash, bs.factory.offset);
     }
     
     SSBL_ERR("Unable to boot to an app.");
-    pmsis_exit(-1);
+    pmsis_exit(PI_FAIL);
 }
 
 void ssbl(void)

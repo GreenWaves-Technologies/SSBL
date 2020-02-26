@@ -58,21 +58,15 @@ typedef struct {
     uint32_t selected_subtype;
 } bootloader_state_t;
 
-/* Indices used by index_to_partition are the OTA index
-   number, or these special constants */
-#define FACTORY_INDEX (-1)
-#define TEST_APP_INDEX (-2)
-#define INVALID_INDEX (-99)
-
-pi_err_t bootloader_utility_fill_state(pi_device_t *flash, bootloader_state_t *bs);
+pi_err_t bootloader_utility_fill_state(const flash_partition_table_t *table, bootloader_state_t *bs);
 
 void sav_pad_func_and_cfg();
 
 void restore_pad_func_and_cfg();
 
-void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_pos_t *partition_pos);
+void bootloader_utility_boot_from_partition(pi_device_t *flash, const uint32_t partition_offset);
 
-int bootloader_utility_get_selected_boot_partition(pi_device_t *flash, const bootloader_state_t *bs);
+pi_partition_subtype_t bootloader_utility_get_boot_partition(const flash_partition_table_t *table, const bootloader_state_t *bs);
 
 static inline void __attribute__((noreturn)) jump_to_address(unsigned int address)
 {

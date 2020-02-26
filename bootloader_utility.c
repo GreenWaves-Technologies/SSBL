@@ -25,24 +25,17 @@
 #include "bsp/bootloader_utility.h"
 #include "bsp/ota_utility.h"
 
-pi_err_t bootloader_utility_fill_state(pi_device_t *flash, bootloader_state_t *bs)
+pi_err_t bootloader_utility_fill_state(const flash_partition_table_t *table, bootloader_state_t *bs)
 {
     pi_err_t rc;
-    const flash_partition_table_t *table = NULL;
     const char *partition_usage;
-    uint8_t nbr_of_partitions;
-    
-    rc = flash_partition_table_load(flash, &table, &nbr_of_partitions);
-    if(rc != PI_OK)
-    {
-        SSBL_ERR("Partition table can not be loaded.");
-        return PI_FAIL;
-    }
     
     SSBL_INF("Partition Table:");
     SSBL_INF("## Label            SSBL usage     Type ST   Offset   Length\n");
     
-    for (uint8_t i = 0; i < nbr_of_partitions; i++)
+    memset(bs, 0, sizeof(*bs));
+    
+    for (uint8_t i = 0; i < table->header.nbr_of_entries; i++)
     {
         const flash_partition_info_t *partition = table->partitions + i;
         partition_usage = "unknown";
@@ -131,7 +124,7 @@ void restore_pad_func_and_cfg()
     }
 }
 
-static void load_segment(pi_device_t *flash, flash_partition_pos_t *partition_pos, bin_segment_t *segment)
+static void load_segment(pi_device_t *flash, const uint32_t partition_offset, const bin_segment_t *segment)
 {
     static PI_L2 uint8_t
     l2_buffer[L2_BUFFER_SIZE];
@@ -143,7 +136,7 @@ static void load_segment(pi_device_t *flash, flash_partition_pos_t *partition_po
     if(isL2Section)
     {
         SSBL_TRC("Load segment to L2 memory at 0x%lX", segment->ptr);
-        pi_flash_read(flash, partition_pos->offset + segment->start, (void *) segment->ptr, segment->size);
+        pi_flash_read(flash, partition_offset + segment->start, (void *) segment->ptr, segment->size);
     } else
     {
         
@@ -153,7 +146,7 @@ static void load_segment(pi_device_t *flash, flash_partition_pos_t *partition_po
         {
             size_t iter_size = (remaining_size > L2_BUFFER_SIZE) ? L2_BUFFER_SIZE : remaining_size;
             SSBL_TRC("Remaining size 0x%lX, it size %lu", remaining_size, iter_size);
-            pi_flash_read(flash, partition_pos->offset + segment->start, l2_buffer, iter_size);
+            pi_flash_read(flash, partition_offset + segment->start, l2_buffer, iter_size);
             memcpy((void *) segment->ptr, (void *) l2_buffer, iter_size);
             remaining_size -= iter_size;
         }
@@ -162,16 +155,16 @@ static void load_segment(pi_device_t *flash, flash_partition_pos_t *partition_po
 //	aes_unencrypt(area->ptr, area->size);
 }
 
-void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_pos_t *partition_pos)
+void bootloader_utility_boot_from_partition(pi_device_t *flash, const uint32_t partition_offset)
 {
     static PI_L2
     bin_desc_t bin_desc;
     static PI_L2 uint8_t
     buff[0x94];
-    bool differ_copy_of_irq_table;
+    bool differ_copy_of_irq_table = false;
     
     // Load binary header
-    pi_flash_read(flash, partition_pos->offset, &bin_desc, sizeof(bin_desc_t));
+    pi_flash_read(flash, partition_offset, &bin_desc, sizeof(bin_desc_t));
 
 //    aes_init = 1;
 //	aes_unencrypt((unsigned int)&flash_desc, sizeof(flash_desc_t));
@@ -190,13 +183,13 @@ void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_
         {
             differ_copy_of_irq_table = true;
             SSBL_TRC("Differ the copy of irq table");
-            pi_flash_read(flash, partition_pos->offset + seg->start, (void *) buff, 0x94);
+            pi_flash_read(flash, partition_offset + seg->start, (void *) buff, 0x94);
             seg->ptr += 0x94;
             seg->start += 0x94;
             seg->size -= 0x94;
         }
         
-        load_segment(flash, partition_pos, seg);
+        load_segment(flash, partition_offset, seg);
     }
     
     
@@ -231,7 +224,22 @@ void bootloader_utility_boot_from_partition(pi_device_t *flash, flash_partition_
     jump_to_address(bin_desc.header.entry);
 }
 
-int bootloader_utility_get_selected_boot_partition(pi_device_t *flash, const bootloader_state_t *bs)
+pi_partition_subtype_t bootloader_utility_get_boot_partition_without_ota_data(const bootloader_state_t *bs)
+{
+    if(bs->factory.offset != 0)
+    {
+        return PI_PARTITION_SUBTYPE_APP_FACTORY;
+    }
+    
+    if(bs->ota[0].offset != 0)
+    {
+        return PI_PARTITION_SUBTYPE_APP_OTA_0;
+    }
+    
+    return PI_PARTITION_SUBTYPE_UNKNOWN;
+}
+
+pi_partition_subtype_t bootloader_utility_get_boot_partition(const flash_partition_table_t *table, const bootloader_state_t *bs)
 {
     pi_err_t rc;
     ota_state_t *ota_state = NULL;
@@ -239,23 +247,25 @@ int bootloader_utility_get_selected_boot_partition(pi_device_t *flash, const boo
     if(bs->ota_info.offset == 0)
     {
         SSBL_WNG("OTA info partition not found, try to find bootable partition.");
-        if(bs->factory.offset == 0)
-        {
-            SSBL_ERR("Partition factory not found. Abort bootloader.");
-            return INVALID_INDEX;
-        } else
-        {
-            SSBL_INF("Using factory partition to boot.");
-            return FACTORY_INDEX;
-        }
+        return bootloader_utility_get_boot_partition_without_ota_data(bs);
     }
     
-    rc = ota_utility_get_ota_state(flash, &bs->ota_info, ota_state);
+    rc = ota_utility_get_ota_state(table->flash, bs->ota_info.offset, ota_state);
     if(rc != PI_OK)
     {
         SSBL_ERR("Unable to read OTA data. Try to boot to factory partition.");
-        return bs->factory.offset == 0 ? INVALID_INDEX : INVALID_INDEX;
+        return bootloader_utility_get_boot_partition_without_ota_data(bs);
     }
     
-    return FACTORY_INDEX;
+    switch (ota_state->state)
+    {
+        case PI_OTA_IMG_NEW:
+            return ota_state->pending_index;
+        
+        case PI_OTA_UPLOADER_START :
+            return ota_state->uploader_index;
+        
+        default:
+            return ota_state->stable_index;
+    }
 }

@@ -56,8 +56,7 @@ pi_err_t ota_utility_get_ota_state_from_flash(pi_device_t *flash, ota_state_t *o
         return PI_ERR_NOT_FOUND;
     }
     
-    
-    rc = ota_utility_get_ota_state(flash, &ota_data_partition->pos, ota_state);
+    rc = ota_utility_get_ota_state(flash, ota_data_partition->pos.offset, ota_state);
     
     flash_partition_table_free(table);
     
@@ -75,6 +74,7 @@ void ota_utility_compute_md5(const ota_state_t *state, uint8_t *res)
     MD5_Update(&context, &state->seq, sizeof(state->seq));
     MD5_Update(&context, &state->stable_index, sizeof(state->stable_index));
     MD5_Update(&context, &state->uploader_index, sizeof(state->uploader_index));
+    MD5_Update(&context, &state->pending_index, sizeof(state->pending_index));
     MD5_Update(&context, &state->state, sizeof(state->state));
     MD5_Update(&context, &state->data_size, sizeof(state->data_size));
     MD5_Update(&context, &state->update_data, state->data_size);
@@ -111,17 +111,57 @@ bool ota_utility_state_is_valid(ota_state_t *state)
     return true;
 }
 
+void ota_utility_init_first_ota_state(ota_state_t *state)
+{
+    memset(state, 0xff, sizeof(ota_state_t));
+    state->seq --;
+    state->stable_index = PI_PARTITION_SUBTYPE_UNKNOWN;
+    state->uploader_index = PI_PARTITION_SUBTYPE_UNKNOWN;
+    state->state = PI_OTA_IMG_UNDEFINED;
+    state->data_size = 0;
+}
+
 pi_err_t
-ota_utility_get_ota_state(pi_device_t *flash, const flash_partition_pos_t *ota_data_pos, ota_state_t *ota_state)
+ota_utility_get_ota_state(pi_device_t *flash, const uint32_t partition_offset, ota_state_t *ota_state)
 {
     struct pi_flash_info flash_info = {0};
+    bool s0_is_valid, s1_is_valid;
     
     pi_flash_ioctl(flash, PI_FLASH_IOCTL_INFO, &flash_info);
     
-    pi_flash_read(flash, ota_data_pos->offset, ota_states, sizeof(ota_state_t));
-    pi_flash_read(flash, ota_data_pos->offset + flash_info.sector_size, ota_states, sizeof(ota_state_t));
+    pi_flash_read(flash, partition_offset, ota_states, sizeof(ota_state_t));
+    pi_flash_read(flash, partition_offset + flash_info.sector_size, ota_states, sizeof(ota_state_t));
     
-    return PI_OK;
+    s0_is_valid = ota_utility_state_is_valid(ota_states + 0);
+    s1_is_valid = ota_utility_state_is_valid(ota_states + 1);
+    
+    // Both slots are valids
+    if(s0_is_valid && s1_is_valid)
+    {
+        if(ota_states[0].seq <= ota_states[1].seq)
+        {
+            
+            *ota_state = ota_states[0];
+        } else
+        {
+            *ota_state = ota_states[1];
+        }
+        return PI_OK;
+    }
+    
+    if(s0_is_valid)
+    {
+        *ota_state = ota_states[0];
+        return PI_OK;
+    }
+    
+    if(s1_is_valid)
+    {
+        *ota_state = ota_states[1];
+        return PI_OK;
+    }
+    
+    return PI_FAIL;
 }
 
 
