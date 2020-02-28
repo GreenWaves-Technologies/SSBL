@@ -32,34 +32,31 @@ typedef enum {
     PI_OTA_IMG_NEW = 0x00U,         /*!< Monitor the first boot. In bootloader this state is changed to PI_OTA_IMG_PENDING_VERIFY. */
     PI_OTA_IMG_PENDING_VERIFY = 0x01U,         /*!< First boot for this app was. If while the second boot this state is then it will be changed to ABORTED. */
     PI_OTA_IMG_INVALID = 0x02U,         /*!< App was confirmed as non-workable. This app will not selected to boot at all. */
-    PI_OTA_IMG_ABORTED = 0x03U,         /*!< App could not confirm the workable or non-workable. In bootloader IMG_PENDING_VERIFY state will be changed to IMG_ABORTED. This app will not selected to boot at all. */
-    PI_OTA_UPLOADER_START = 0x10U,         /*!< Ussing uploader for the next rebbot to download new binary. */
-    PI_OTA_UPLOADER_RUNNING = 0x11U,         /*!< Using uploader to download new binary. */
-    PI_OTA_UPLOADER_ABORTED = 0x12U,         /*!< The uploader fail to download a new app. */
+    PI_OTA_IMG_VALID = 0x03U,         /*!< App was confirmed as workable. This app will selected to boot at all. */
+    PI_OTA_IMG_ABORTED = 0x04U,         /*!< App could not confirm the workable or non-workable. In bootloader IMG_PENDING_VERIFY state will be changed to IMG_ABORTED. This app will not selected to boot at all. */
+    PI_OTA_IMG_BOOT_ONCE = 0x05U,         /*!< Boot to a specific application just once. In bootloader IMG_BOOT_ONCE state will be changed to IMG_VALID. */
     PI_OTA_IMG_UNDEFINED = 0xFFU,  /*!< Undefined. App can boot and work without limits. */
 } ota_img_states_t;
 
-#define OTA_UPDATE_DATA_SIZE_MAX 1024
 
 typedef struct {
     uint8_t md5[16];
     uint32_t seq;
-    uint8_t stable_index; // Subtype of stable app
-    uint8_t uploader_index; // Subtype of stable uploader
-    uint8_t pending_index; // Partition candidate to upload.
+    uint8_t stable; // Subtype of stable app
+    uint8_t previous_stable; // Subtype of previous stable app
+    uint8_t once; // Partition to boot for the next reboot.
     uint8_t state;
-    uint32_t data_size;
-    void *update_data;
 } ota_state_t;
 
-pi_err_t ota_utility_get_ota_state_from_flash(pi_device_t *flash, ota_state_t *ota_state);
-
-pi_err_t
-ota_utility_get_ota_state(pi_device_t *flash, const uint32_t partition_offset, ota_state_t *ota_state);
+pi_err_t ota_utility_get_ota_state_from_partition_table(const pi_partition_table_t table, ota_state_t *ota_state);
 
 void ota_utility_compute_md5(const ota_state_t *state, uint8_t *res);
 
 bool ota_utility_state_is_valid(ota_state_t *state);
+
+pi_err_t ota_utility_get_ota_state(pi_device_t *flash, const uint32_t partition_offset, ota_state_t *ota_state);
+
+pi_err_t ota_utility_write_ota_data(const flash_partition_table_t *table, ota_state_t *ota_state);
 
 void ota_utility_init_first_ota_state(ota_state_t *state);
 

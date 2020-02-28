@@ -67,24 +67,10 @@ void ota_state_is_valid_test()
     ok = ota_utility_state_is_valid(&state);
     printf("state is %s\n", ok ? "ok" : "bad");
     
-    printf("data size = 0\n");
-    state.data_size = 0;
-    ok = ota_utility_state_is_valid(&state);
-    printf("state is %s\n", ok ? "ok" : "bad");
-    
     printf("compute md5\n");
     ota_utility_compute_md5(&state, state.md5);
     ok = ota_utility_state_is_valid(&state);
     printf("state is %s\n", ok ? "ok" : "bad");
-    
-    printf("Add data\n");
-    state.data_size = 4;
-    state.update_data = (void *) 42;
-    ota_utility_compute_md5(&state, state.md5);
-    ok = ota_utility_state_is_valid(&state);
-    printf("state is %s\n", ok ? "ok" : "bad");
-    printf("data read %lu\n", (uint32_t) state.update_data);
-    
     
     exit(0);
 }

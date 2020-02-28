@@ -30,8 +30,8 @@ pi_err_t bootloader_utility_fill_state(const flash_partition_table_t *table, boo
     pi_err_t rc;
     const char *partition_usage;
     
-    SSBL_INF("Partition Table:");
-    SSBL_INF("## Label            SSBL usage     Type ST   Offset   Length\n");
+    SSBL_TRC("Partition Table:");
+    SSBL_TRC("## Label            SSBL usage     Type ST   Offset   Length\n");
     
     memset(bs, 0, sizeof(*bs));
     
@@ -84,14 +84,14 @@ pi_err_t bootloader_utility_fill_state(const flash_partition_table_t *table, boo
                 break;
         }
         
-        SSBL_INF("%2d %-16s %-16s %02x %02x   %08lx %08lx\n",
+        SSBL_TRC("%2d %-16s %-16s %02x %02x   %08lx %08lx",
                  i, partition->label, partition_usage,
                  partition->type, partition->subtype,
                  partition->pos.offset, partition->pos.size);
     }
     
     
-    SSBL_INF("End of partition table\n");
+    SSBL_TRC("End of partition table\n");
     return PI_OK;
 }
 
@@ -226,23 +226,42 @@ void bootloader_utility_boot_from_partition(pi_device_t *flash, const uint32_t p
 
 pi_partition_subtype_t bootloader_utility_get_boot_partition_without_ota_data(const bootloader_state_t *bs)
 {
-    if(bs->factory.offset != 0)
+    if(bs->factory.offset)
     {
+        SSBL_INF("Factory partition has been found.");
         return PI_PARTITION_SUBTYPE_APP_FACTORY;
     }
     
-    if(bs->ota[0].offset != 0)
+    if(bs->ota[0].offset)
     {
+        SSBL_INF("Factory partition is not present, try to boot to OTA1 partition.");
         return PI_PARTITION_SUBTYPE_APP_OTA_0;
     }
     
+    SSBL_ERR("Factory or OTA0 partition not found. Unable to find bootable partition.");
     return PI_PARTITION_SUBTYPE_UNKNOWN;
+}
+
+pi_partition_subtype_t bootloader_utility_get_boot_stable_partition(const bootloader_state_t *bs, const ota_state_t *ota_state)
+{
+    SSBL_TRC("Search stable partition");
+    if(ota_state->stable != PI_PARTITION_SUBTYPE_UNKNOWN)
+    {
+        SSBL_TRC("OTA data stable partition found: %u", ota_state->stable);
+        return ota_state->stable;
+    }
+    
+    SSBL_TRC("Stable app not found into OTA data informations. Try to found bootable partition.");
+    return bootloader_utility_get_boot_partition_without_ota_data(bs);
 }
 
 pi_partition_subtype_t bootloader_utility_get_boot_partition(const flash_partition_table_t *table, const bootloader_state_t *bs)
 {
     pi_err_t rc;
     ota_state_t *ota_state = NULL;
+    pi_partition_subtype_t subtype;
+    
+    SSBL_INF("Try to read OTA data from flash.");
     
     if(bs->ota_info.offset == 0)
     {
@@ -253,19 +272,51 @@ pi_partition_subtype_t bootloader_utility_get_boot_partition(const flash_partiti
     rc = ota_utility_get_ota_state(table->flash, bs->ota_info.offset, ota_state);
     if(rc != PI_OK)
     {
-        SSBL_ERR("Unable to read OTA data. Try to boot to factory partition.");
+        SSBL_WNG("Unable to read OTA data. Try to boot to factory or ota0 partition.");
         return bootloader_utility_get_boot_partition_without_ota_data(bs);
     }
     
+    SSBL_TRC("OTA data found. Seqence number %lu, OTA state %u, stable subtype %u, previous stable subtype %u", ota_state->seq, ota_state->state,
+             ota_state->stable, ota_state->previous_stable);
     switch (ota_state->state)
     {
+        case PI_OTA_IMG_VALID:
+            SSBL_INF("Select stable partition type.");
+            return ota_state->stable;
+        
         case PI_OTA_IMG_NEW:
-            return ota_state->pending_index;
+            SSBL_INF("An update is available, try to upgrade app.");
+            ota_state->state = PI_OTA_IMG_PENDING_VERIFY;
+            ota_utility_write_ota_data(table, ota_state);
+            return ota_state->once;
         
-        case PI_OTA_UPLOADER_START :
-            return ota_state->uploader_index;
+        case PI_OTA_IMG_PENDING_VERIFY:
+            SSBL_ERR("Last upgrade fail! App could not confirm the workable or non-workable. Invalidate the partition and boot to the stable app.");
+            ota_state->state = PI_OTA_IMG_ABORTED;
+            ota_utility_write_ota_data(table, ota_state);
+            return bootloader_utility_get_boot_stable_partition(bs, ota_state);
         
-        default:
-            return ota_state->stable_index;
+        case PI_OTA_IMG_INVALID:
+            SSBL_INF("Last upgrade has been marked invalid. Boot to the stable app.");
+            return bootloader_utility_get_boot_stable_partition(bs, ota_state);
+        
+        case PI_OTA_IMG_ABORTED:
+            SSBL_INF("Last upgrade was aborted by the bootloader. Try boot to the stable app.");
+            return bootloader_utility_get_boot_stable_partition(bs, ota_state);
+        
+        case PI_OTA_IMG_BOOT_ONCE:
+            SSBL_INF("Boot just once to a specific app.");
+            ota_state->state = PI_OTA_IMG_VALID;
+            subtype = ota_state->once;
+            ota_state->once = PI_PARTITION_SUBTYPE_UNKNOWN;
+            ota_utility_write_ota_data(table, ota_state);
+            return subtype;
+        
+        case PI_OTA_IMG_UNDEFINED:
+            SSBL_INF("OTA state is not set. Try to boot to the stable app.");
+            return bootloader_utility_get_boot_stable_partition(bs, ota_state);
     }
+    
+    SSBL_ERR("Internal error into %s, try to find bootable app.");
+    return bootloader_utility_get_boot_partition_without_ota_data(bs);
 }

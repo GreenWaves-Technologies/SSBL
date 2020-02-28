@@ -5,15 +5,20 @@
 APP              = ssbl
 APP_SRCS        += \
     ssbl.c \
-    partition.c \
     bootloader_utility.c \
-    ota_utility.c
+    partition.c \
+    ota_utility.c \
+    ota.c
 
 APP_INC         +=
 APP_CFLAGS      += -Wall -Werror -Wextra \
     -DPI_LOG_DEFAULT_LEVEL=5 -DPI_LOG_NO_CORE_ID
 
+ifeq ($(platform), gvsoc)
+APP_LINK_SCRIPT = ssbl-GAP8-gvsoc.ld
+else
 APP_LINK_SCRIPT = ssbl-GAP8.ld
+endif
 
 io=host
 PMSIS_OS = freertos
@@ -41,7 +46,8 @@ GEN_FLASH_IMAGE_FLAGS += -p factory $(FACTORY_BIN)
 $(FACTORY_ELF): factory/BUILD/GAP8_V2/GCC_RISCV/test
 	cp $< $@
 
-factory/BUILD/GAP8_V2/GCC_RISCV/test: factory/factory.c factory/Makefile
+.PHONY: factory/BUILD/GAP8_V2/GCC_RISCV/test
+factory/BUILD/GAP8_V2/GCC_RISCV/test:
 	cd factory && make all;  cd ..
 
 $(FACTORY_BIN): $(FACTORY_ELF)
