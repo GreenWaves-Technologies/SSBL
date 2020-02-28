@@ -1,0 +1,7 @@
+# Name,   Type, SubType, Offset,   Size, Flags
+# Note: if you have increased the bootloader size, make sure to update the offsets to avoid overlap
+otadata,  data, ota,     ,        2sec,
+factory,  app,  factory, ,        1M,
+ota_0,    app,  ota0,   ,        1M,
+ota_1,    app,  ota1,   ,        1M,
+readfs,    data,  readfs,   ,        1M,
