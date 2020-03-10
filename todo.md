@@ -1,14 +1,13 @@
 # Bug
 
-* App using freertos doesn't run, main ok but kickof doesn't start function.
-* gvsoc doesn't boot if ssbl uses pulpos
+* GVSOC does not flush icache after copying app
 
 # todo
 ## boot
 
-- check CRC into binary header
 - aes
 - testing with L1 segment.
-
+- remove pad sav / restore
+- remove disable timer interrupt 
 
 
