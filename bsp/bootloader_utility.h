@@ -43,10 +43,13 @@ typedef struct {
     uint32_t entry;
 } bin_header_t;
 
+#define APP_BIN_MAGIC_CODE "GApp"
+
 typedef struct {
+    char magic_code[4];
+    uint8_t md5[16];
     bin_header_t header;
     bin_segment_t segments[MAX_NB_SEGMENT];
-    uint32_t crc;
 } bin_desc_t;
 
 typedef struct {
@@ -59,13 +62,15 @@ typedef struct {
     uint32_t selected_subtype;
 } bootloader_state_t;
 
+bool bootloader_utility_binary_is_valid(pi_device_t *flash, uint32_t flash_offset);
+
 pi_err_t bootloader_utility_fill_state(const flash_partition_table_t *table, bootloader_state_t *bs);
 
 void sav_pad_func_and_cfg();
 
 void restore_pad_func_and_cfg();
 
-void bootloader_utility_boot_from_partition(pi_device_t *flash, const uint32_t partition_offset);
+pi_err_t bootloader_utility_boot_from_partition(pi_device_t *flash, const uint32_t partition_offset);
 
 pi_partition_subtype_t bootloader_utility_get_boot_partition(const flash_partition_table_t *table, const bootloader_state_t *bs);
 

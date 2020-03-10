@@ -1,18 +1,16 @@
-# Factory app
+# APP app
 #------------------------------------
 SHELL = /bin/bash
-APP              = factory
-APP_SRCS        += factory.c \
+APP              = app
+APP_SRCS        += app.c \
 ../ota.c ../ota_utility.c ../bootloader_utility.c
 APP_INC	        += ..
 
+VERSION ?= 0
 LOG_LEVEL ?= 2
-APP_CFLAGS      += -DPI_LOG_DEFAULT_LEVEL=$(LOG_LEVEL) -DPI_LOG_NO_CORE_ID
+APP_CFLAGS      += -DPI_LOG_DEFAULT_LEVEL=$(LOG_LEVEL) -DPI_LOG_NO_CORE_ID -DVERSION_APP=$(VERSION)
 
 io?=host
-#export GAP_USE_OPENOCD=1
 PMSIS_OS=freertos
-
-
 
 include $(RULES_DIR)/pmsis_rules.mk

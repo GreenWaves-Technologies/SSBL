@@ -12,4 +12,4 @@ add_executable(ssbl
         ssbl.c
         partition.c partition.h
         bootloader_utility.c bootloader_utility.h
-        )
+        updater.h)

@@ -24,6 +24,7 @@
 
 #include "bsp/bootloader_utility.h"
 #include "bsp/ota_utility.h"
+#include "bsp/crc/md5.h"
 
 pi_err_t bootloader_utility_fill_state(const flash_partition_table_t *table, bootloader_state_t *bs)
 {
@@ -95,6 +96,68 @@ pi_err_t bootloader_utility_fill_state(const flash_partition_table_t *table, boo
     return PI_OK;
 }
 
+static bool bootloader_utility_binary_header_is_valid(const bin_desc_t *bin_desc)
+{
+    MD5_CTX context;
+    size_t cmp;
+    uint8_t res[16];
+    
+    SSBL_TRC("Binary header: magic code: %.4s, nbr of segments: %u, entry point: 0x%x",
+             bin_desc->magic_code, bin_desc->header.nb_segments, bin_desc->header.entry);
+    
+    // Check magic code
+    cmp = memcmp(&bin_desc->magic_code, APP_BIN_MAGIC_CODE, 4);
+    if(cmp)
+    {
+        SSBL_ERR("App binary check failed: magic code does not match %.4s != %.4s", APP_BIN_MAGIC_CODE, bin_desc->magic_code);
+        return false;
+    }
+    
+    if(bin_desc->header.nb_segments > MAX_NB_SEGMENT)
+    {
+        SSBL_ERR("overflow of the number of segments allowed. Max %u, used %u", MAX_NB_SEGMENT, bin_desc->header.nb_segments);
+        return false;
+    }
+    
+    // Check CRC
+    MD5_Init(&context);
+    MD5_Update(&context, &bin_desc->header, sizeof(bin_header_t));
+    for (uint8_t i = 0; i < bin_desc->header.nb_segments; i++)
+    {
+        MD5_Update(&context, bin_desc->segments + i, sizeof(bin_segment_t));
+    }
+    MD5_Final(res, &context);
+    
+    cmp = memcmp(res, bin_desc->md5, 16);
+    if(cmp)
+    {
+        SSBL_ERR("App binary MD5 check failed");
+        return false;
+    }
+    
+    return true;
+}
+
+bool bootloader_utility_binary_is_valid(pi_device_t *flash, uint32_t flash_offset)
+{
+    bool is_valid;
+    bin_desc_t *bin_desc;
+    
+    bin_desc = pi_l2_malloc(sizeof(bin_desc_t));
+    if(bin_desc == NULL)
+    {
+        return false;
+    }
+    
+    pi_flash_read(flash, flash_offset, bin_desc, sizeof(bin_desc_t));
+    
+    is_valid = bootloader_utility_binary_header_is_valid(bin_desc);
+    
+    pi_l2_free(bin_desc, sizeof(bin_desc_t));
+    
+    return is_valid;
+}
+
 static uint32_t pad_func_sav[ARCHI_PAD_NB_PADFUNC_REG];
 static uint32_t pad_cfg_sav[ARCHI_PAD_NB_PADCFG_REG];
 
@@ -155,7 +218,7 @@ static void load_segment(pi_device_t *flash, const uint32_t partition_offset, co
 //	aes_unencrypt(area->ptr, area->size);
 }
 
-void bootloader_utility_boot_from_partition(pi_device_t *flash, const uint32_t partition_offset)
+pi_err_t bootloader_utility_boot_from_partition(pi_device_t *flash, const uint32_t partition_offset)
 {
     static PI_L2
     bin_desc_t bin_desc;
@@ -169,8 +232,11 @@ void bootloader_utility_boot_from_partition(pi_device_t *flash, const uint32_t p
 //    aes_init = 1;
 //	aes_unencrypt((unsigned int)&flash_desc, sizeof(flash_desc_t));
     
-    SSBL_TRC("App header: nbr of segments %lu, entry point 0x%lx", bin_desc.header.nb_segments,
-             bin_desc.header.entry);
+    if(!bootloader_utility_binary_header_is_valid(&bin_desc))
+    {
+        SSBL_ERR("Binary is invalid, unable to boot to this app.");
+        return PI_ERR_INVALID_APP;
+    }
     
     for (uint8_t i = 0; i < bin_desc.header.nb_segments; i++)
     {
@@ -276,8 +342,6 @@ pi_partition_subtype_t bootloader_utility_get_boot_partition(const flash_partiti
         return bootloader_utility_get_boot_partition_without_ota_data(bs);
     }
     
-    SSBL_TRC("OTA data found. Seqence number %lu, OTA state %u, stable subtype %u, previous stable subtype %u", ota_state->seq, ota_state->state,
-             ota_state->stable, ota_state->previous_stable);
     switch (ota_state->state)
     {
         case PI_OTA_IMG_VALID:

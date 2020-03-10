@@ -73,7 +73,7 @@ bool ota_utility_state_is_valid(ota_state_t *state)
     
     if(state->seq == UINT32_MAX)
     {
-        PI_LOG_WNG("ota", "Check ota state: bad sequence number 0x%lx", state->seq);
+        PI_LOG_INF("ota", "Check ota state: bad sequence number 0x%lx", state->seq);
         return false;
     }
     
@@ -101,16 +101,17 @@ void ota_utility_init_first_ota_state(ota_state_t *state)
 pi_err_t
 ota_utility_get_ota_state(pi_device_t *flash, const uint32_t partition_offset, ota_state_t *ota_state)
 {
-    pi_err_t rc = PI_FAIL;
+    pi_err_t rc = PI_ERR_NOT_FOUND;
     struct pi_flash_info flash_info = {0};
     ota_state_t *ota_states_l2;
     bool s0_is_valid, s1_is_valid;
+    int8_t sector_id = -1;
     
     pi_flash_ioctl(flash, PI_FLASH_IOCTL_INFO, &flash_info);
     PI_LOG_TRC("ota", "Read OTA data, flash offset %lx, sector size %lx", partition_offset, flash_info.sector_size);
     
     ota_states_l2 = pi_l2_malloc(sizeof(ota_state_t) * 2);
-    if (ota_states_l2 == NULL)
+    if(ota_states_l2 == NULL)
         return PI_ERR_L2_NO_MEM;
     
     pi_flash_read(flash, partition_offset, ota_states_l2, sizeof(ota_state_t));
@@ -127,25 +128,37 @@ ota_utility_get_ota_state(pi_device_t *flash, const uint32_t partition_offset, o
         if(ota_states_l2[0].seq <= ota_states_l2[1].seq)
         {
             PI_LOG_TRC("ota", "Two OTA data are valid, using OTA data 0 which is the most recent.");
-            *ota_state = ota_states_l2[0];
+            sector_id = 0;
         } else
         {
             PI_LOG_TRC("ota", "Two OTA data are valid, using OTA data 1 which is the most recent.");
-            *ota_state = ota_states_l2[1];
+            sector_id = 1;
         }
         rc = PI_OK;
+    } else
+    {
+        
+        if(s0_is_valid)
+        {
+            PI_LOG_TRC("ota", "Using OTA data 0 that is the only valid.");
+            sector_id = 0;
+            rc = PI_OK;
+        }
+        
+        if(s1_is_valid)
+        {
+            PI_LOG_TRC("ota", "Using OTA data 1 that is the only valid.");
+            sector_id = 1;
+            rc = PI_OK;
+        }
     }
     
-    if(s0_is_valid)
+    if(rc == PI_OK)
     {
-        *ota_state = ota_states_l2[0];
-        rc = PI_OK;
-    }
-    
-    if(s1_is_valid)
-    {
-        *ota_state = ota_states_l2[1];
-        rc = PI_OK;
+        SSBL_TRC("OTA data found at sector %u. Seqence number %lx, OTA state %u, stable subtype 0x%x, previous stable subtype 0x%x, once subtype 0x%x",
+                 sector_id, ota_state->seq, ota_state->state, ota_state->stable, ota_state->previous_stable, ota_state->once);
+        
+        *ota_state = ota_states_l2[sector_id];
     }
     
     pi_l2_free(ota_states_l2, sizeof(ota_state_t) * 2);
@@ -168,7 +181,7 @@ pi_err_t ota_utility_write_ota_data(const flash_partition_table_t *table, ota_st
     pi_flash_ioctl(table->flash, PI_FLASH_IOCTL_INFO, &flash_info);
     
     ota_state_l2 = pi_l2_malloc(sizeof(ota_state_t));
-    if (ota_state_l2 == NULL)
+    if(ota_state_l2 == NULL)
     {
         return PI_ERR_L2_NO_MEM;
     }
@@ -181,8 +194,8 @@ pi_err_t ota_utility_write_ota_data(const flash_partition_table_t *table, ota_st
     PI_LOG_TRC("ota", "Erase OTA data sector %u", sector_id);
     pi_flash_erase_sector(table->flash, ota_data_partition->pos.offset + sector_id * flash_info.sector_size);
     
-    PI_LOG_TRC("ota", "Write ota data at sector %u: seq number %lx, state %u, stable %u, previous stable %u, once %u", sector_id, ota_state->seq, ota_state->state,
-               ota_state->stable, ota_state->previous_stable, ota_state->once);
+    PI_LOG_TRC("ota", "Write ota data at sector %u: seq number %lx, OTA state %u, stable subtype 0x%x, previous stable subtype 0x%x, once subtype 0x%x",
+               sector_id, ota_state->seq, ota_state->state, ota_state->stable, ota_state->previous_stable, ota_state->once);
     pi_flash_program(table->flash, ota_data_partition->pos.offset + sector_id * flash_info.sector_size, ota_state_l2, sizeof(ota_state_t));
     
     pi_l2_free(ota_state_l2, sizeof(ota_state_t));

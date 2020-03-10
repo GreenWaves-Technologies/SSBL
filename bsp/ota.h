@@ -23,11 +23,17 @@
 #define OTA_H
 
 #include "stdint.h"
+
 #include "pmsis.h"
 #include "bsp/partition.h"
 #include "bsp/flash_partition.h"
+#include "bsp/ota_utility.h"
 
 const pi_partition_t *ota_get_next_ota_partition(const pi_partition_table_t table);
+
+pi_err_t ota_get_img_state(const pi_partition_table_t table, ota_img_states_t *ota_img_state);
+
+pi_err_t ota_get_img_state_from_flash(pi_device_t *flash, ota_img_states_t *ota_img_state);
 
 /**
  * @brief This function is called to indicate that the running app is working well.
@@ -35,7 +41,7 @@ const pi_partition_t *ota_get_next_ota_partition(const pi_partition_table_t tabl
  * @return
  *  - PI_OK: if successful.
  */
-pi_err_t ota_mark_app_valid_cancel_rollback(void);
+pi_err_t ota_mark_app_valid_cancel_rollback(const pi_partition_table_t table);
 
 
 /**
@@ -47,7 +53,7 @@ pi_err_t ota_mark_app_valid_cancel_rollback(void);
  * @return
  *  - pi_FAIL: if not successful.
  */
-pi_err_t ota_mark_app_invalid_rollback_and_reboot(void);
+pi_err_t ota_mark_app_invalid_rollback_and_reboot(const pi_partition_table_t table);
 
 
 /**
@@ -65,6 +71,9 @@ pi_err_t ota_mark_app_invalid_rollback_and_reboot(void);
  *    - PI_ERR_NOT_FOUND: OTA data partition not found.
  */
 pi_err_t ota_set_boot_partition(const pi_partition_table_t table, const pi_partition_t *partition);
+
+void ota_reboot(void);
+
 
 
 #endif //OTA_H

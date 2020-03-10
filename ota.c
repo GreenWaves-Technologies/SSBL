@@ -88,7 +88,6 @@ const pi_partition_t *ota_get_next_ota_partition(const pi_partition_table_t tabl
     rc = ota_utility_get_ota_state_from_partition_table(table, &ota_state);
     if(rc != PI_OK)
     {
-        PI_LOG_WNG("ota", "OTA state not found, use a new one.");
         ota_utility_init_first_ota_state(&ota_state);;
     }
     
@@ -111,6 +110,60 @@ const pi_partition_t *ota_get_next_ota_partition(const pi_partition_table_t tabl
     return next_partition;
 }
 
+pi_err_t ota_set_once_boot_partition(const pi_partition_table_t table, const pi_partition_t *partition)
+{
+    pi_err_t rc = PI_OK;
+    const pi_partition_t *ota_data_partition = NULL;
+    ota_state_t ota_state;
+    
+    if(partition == NULL)
+    {
+        PI_LOG_ERR("ota", "Partition arg is not valid");
+        return PI_ERR_INVALID_ARG;
+    }
+    
+    if(partition->type != PI_PARTITION_TYPE_APP)
+    {
+        PI_LOG_ERR("ota", "A bootable partition must be of app type.");
+        return PI_ERR_INVALID_ARG;
+    }
+    
+    // Check binary integrity
+    if(!bootloader_utility_binary_is_valid(((const flash_partition_table_t *) table)->flash, partition->offset))
+    {
+        PI_LOG_ERR("ota", "Binary under partition is not bootable. OTA state is unchanged.");
+        return PI_ERR_INVALID_APP;
+    }
+    
+    PI_LOG_TRC("ota", "Open OTA data partition.");
+    ota_data_partition = pi_partition_find_first(table, PI_PARTITION_TYPE_DATA, PI_PARTITION_SUBTYPE_DATA_OTA, NULL);
+    if(ota_data_partition == NULL)
+    {
+        PI_LOG_ERR("ota", "Unable to load ota data partition. OTA state is unchanged.");
+        return PI_ERR_NOT_FOUND;
+    }
+    
+    rc = ota_utility_get_ota_state(ota_data_partition->flash, ota_data_partition->offset, &ota_state);
+    if(rc != PI_OK)
+    {
+        PI_LOG_WNG("ota", "Unable to load ota data information, use a new one.");
+        ota_utility_init_first_ota_state(&ota_state);;
+    }
+    
+    ota_state.state = PI_OTA_IMG_BOOT_ONCE;
+    ota_state.once = partition->subtype;
+    rc = ota_utility_write_ota_data(table, &ota_state);
+    if(rc != PI_OK)
+    {
+        PI_LOG_ERR("ota", "Unable to write new OTA data.");
+        goto close_partition_and_return_rc;
+    }
+    
+    close_partition_and_return_rc:
+    pi_partition_close(ota_data_partition);
+    return rc;
+}
+
 pi_err_t ota_set_boot_partition(const pi_partition_table_t table, const pi_partition_t *partition)
 {
     pi_err_t rc = PI_OK;
@@ -122,6 +175,15 @@ pi_err_t ota_set_boot_partition(const pi_partition_table_t table, const pi_parti
         PI_LOG_ERR("ota", "Partition arg is not valid");
         return PI_ERR_INVALID_ARG;
     }
+    
+    
+    // Check binary integrity
+    if(!bootloader_utility_binary_is_valid(((const flash_partition_table_t *) table)->flash, partition->offset))
+    {
+        PI_LOG_ERR("ota", "Binary under partition is not bootable. OTA state is unchanged.");
+        return PI_ERR_INVALID_APP;
+    }
+    
     
     PI_LOG_TRC("ota", "Open OTA data partition.");
     ota_data_partition = pi_partition_find_first(table, PI_PARTITION_TYPE_DATA, PI_PARTITION_SUBTYPE_DATA_OTA, NULL);
@@ -175,4 +237,135 @@ pi_err_t ota_set_boot_partition(const pi_partition_table_t table, const pi_parti
     pi_partition_close(ota_data_partition);
     return rc;
 }
+
+pi_err_t ota_get_img_state(const pi_partition_table_t table, ota_img_states_t *ota_img_state)
+{
+    pi_err_t rc;
+    ota_state_t ota_state_info;
+    
+    rc = ota_utility_get_ota_state_from_partition_table(table, &ota_state_info);
+    
+    if(rc == PI_OK)
+    {
+        *ota_img_state = ota_state_info.state;
+    }
+    
+    return rc;
+}
+
+pi_err_t ota_get_img_state_from_flash(pi_device_t *flash, ota_img_states_t *ota_img_state)
+{
+    const pi_partition_table_t table;
+    pi_err_t rc;
+    
+    rc = pi_partition_table_load(flash, &table);
+    if (rc != PI_OK)
+    {
+        PI_LOG_ERR("ota", "Unable to load partition table.");
+        return rc;
+    }
+    
+    rc = ota_get_img_state(table, ota_img_state);
+    
+    pi_partition_table_free(table);
+    return rc;
+}
+
+pi_err_t ota_mark_app_valid_cancel_rollback(const pi_partition_table_t table)
+{
+    pi_err_t rc;
+    const flash_partition_table_t *flash_table = (const flash_partition_table_t *) table;
+    const flash_partition_info_t *ota_data_partition;
+    ota_state_t ota_state;
+    
+    ota_data_partition = flash_partition_find_first(flash_table, PI_PARTITION_TYPE_DATA, PI_PARTITION_SUBTYPE_DATA_OTA, NULL);
+    if(ota_data_partition == NULL)
+    {
+        PI_LOG_ERR("ota", "Unable to load ota data partition, OTA state is unchanged.");
+        return PI_ERR_NOT_FOUND;
+    }
+    
+    rc = ota_utility_get_ota_state(flash_table->flash, ota_data_partition->pos.offset, &ota_state);
+    if(rc != PI_OK)
+    {
+        PI_LOG_ERR("ota", "Unable to load ota data information, OTA state is unchanged.");
+        return PI_ERR_NOT_FOUND;
+    }
+    
+    if(ota_state.state != PI_OTA_IMG_PENDING_VERIFY)
+    {
+        PI_LOG_ERR("ota", "OTA state must be in PI_OTA_IMG_PENDING_VERIFY state. Current OTA state is %u", ota_state.state);
+        return PI_ERR_INVALID_STATE;
+    }
+    
+    ota_state.state = PI_OTA_IMG_VALID;
+    ota_state.previous_stable = ota_state.stable;
+    ota_state.stable = ota_state.once;
+    
+    rc = ota_utility_write_ota_data(flash_table, &ota_state);
+    if(rc != PI_OK)
+    {
+        PI_LOG_ERR("ota", "Unable to write new OTA data. OTA state is unchanged.");
+        return PI_ERR_INVALID_STATE;
+    }
+    
+    PI_LOG_INF("ota", "Current app is marked valid state.");
+    
+    return PI_OK;
+}
+
+pi_err_t ota_mark_app_invalid_rollback_and_reboot(const pi_partition_table_t table)
+{
+    pi_err_t rc;
+    const flash_partition_table_t *flash_table = (const flash_partition_table_t *) table;
+    const flash_partition_info_t *ota_data_partition;
+    ota_state_t ota_state;
+    
+    ota_data_partition = flash_partition_find_first(flash_table, PI_PARTITION_TYPE_DATA, PI_PARTITION_SUBTYPE_DATA_OTA, NULL);
+    if(ota_data_partition == NULL)
+    {
+        PI_LOG_ERR("ota", "Unable to load ota data partition, OTA state is unchanged.");
+        return PI_ERR_NOT_FOUND;
+    }
+    
+    rc = ota_utility_get_ota_state(flash_table->flash, ota_data_partition->pos.offset, &ota_state);
+    if(rc != PI_OK)
+    {
+        PI_LOG_ERR("ota", "Unable to load ota data information, OTA state is unchanged.");
+        return PI_ERR_NOT_FOUND;
+    }
+    
+    if(ota_state.state != PI_OTA_IMG_PENDING_VERIFY)
+    {
+        PI_LOG_ERR("ota", "OTA state must be in PI_OTA_IMG_PENDING_VERIFY state. Current OTA state is %u", ota_state.state);
+        return PI_ERR_INVALID_STATE;
+    }
+    
+    ota_state.state = PI_OTA_IMG_INVALID;
+    
+    rc = ota_utility_write_ota_data(flash_table, &ota_state);
+    if(rc != PI_OK)
+    {
+        PI_LOG_ERR("ota", "Unable to write new OTA data. OTA state is unchanged.");
+        return PI_ERR_INVALID_STATE;
+    }
+    
+    PI_LOG_INF("ota", "Current app is marked as invalid.");
+    
+    ota_reboot();
+    __builtin_unreachable();
+}
+
+void ota_reboot(void)
+{
+    printf("Please reboot the device.\n");
+    while (1)
+    {
+        __asm__("wfi"::);
+    }
+    
+    __builtin_unreachable();
+}
+
+
 

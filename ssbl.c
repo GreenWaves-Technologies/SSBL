@@ -80,10 +80,12 @@ void boot_to_flash_app(pi_device_t *flash)
     pi_err_t rc;
     bootloader_state_t bs;
     const flash_partition_table_t *table;
+    pi_partition_subtype_t boot_type;
+    const flash_partition_info_t *boot_partition;
     
     SSBL_INF("Load partition table from flash");
     rc = flash_partition_table_load(flash, &table, NULL);
-    if (rc != PI_OK)
+    if(rc != PI_OK)
     {
         SSBL_ERR("Unable to load partition table from flash (error %d). Abort bootloader.", rc);
         // Todo maybe restart.
@@ -98,17 +100,26 @@ void boot_to_flash_app(pi_device_t *flash)
         pmsis_exit(PI_ERR_NOT_FOUND);
     }
     
-    pi_partition_subtype_t boot_type = bootloader_utility_get_boot_partition(table, &bs);
-    flash_partition_table_free(table);
+    boot_type = bootloader_utility_get_boot_partition(table, &bs);
     
-    if(boot_type == PI_PARTITION_SUBTYPE_APP_FACTORY)
+    if(boot_type == PI_PARTITION_SUBTYPE_UNKNOWN)
     {
-        SSBL_INF("Boot to factory partition:");
-        bootloader_utility_boot_from_partition(flash, bs.factory.offset);
+        SSBL_ERR("Unable to boot to an app.");
+        flash_partition_table_free(table);
+        pmsis_exit(PI_FAIL);
     }
     
-    SSBL_ERR("Unable to boot to an app.");
-    pmsis_exit(PI_FAIL);
+    boot_partition = flash_partition_find_first(table, PI_PARTITION_TYPE_APP, boot_type, NULL);
+    if (boot_partition == NULL)
+    {
+        SSBL_ERR("Unable to load partition subtype 0x%x to boot", boot_type);
+        flash_partition_table_free(table);
+        pmsis_exit(PI_FAIL);
+    }
+    SSBL_INF("Boot to partition subtype 0x%x at offset 0x%x", boot_partition->subtype, boot_partition->pos.offset);
+    bootloader_utility_boot_from_partition(flash, boot_partition->pos.offset);
+    
+    flash_partition_table_free(table);
 }
 
 void ssbl(void)
