@@ -3,13 +3,7 @@
 #------------------------------------
 
 APP              = ssbl
-APP_SRCS        += \
-    ssbl.c \
-    bootloader_utility.c \
-    partition.c \
-    ota_utility.c \
-    ota.c updater.c
-
+APP_SRCS        += ssbl.c
 APP_INC         += .
 
 LOG_LEVEL ?= 2

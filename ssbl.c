@@ -25,9 +25,7 @@
 #include "bsp/flash/hyperflash.h"
 #include "bsp/flash_partition.h"
 
-#include "bootloader_config.h"
 #include "bsp/bootloader_utility.h"
-#include "partition.h"
 #include "bsp/ota_utility.h"
 
 /*
