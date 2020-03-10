@@ -140,7 +140,5 @@ void ssbl(void)
 int main(void)
 {
     
-    sav_pad_func_and_cfg();
-    
     return pmsis_kickoff((void *) ssbl);
 }
