@@ -7,7 +7,7 @@
 #include "bsp/fs.h"
 #include <bsp/fs/hostfs.h>
 #include <bsp/fs/readfs.h>
-#include "updater.h"
+#include "bsp/updater.h"
 
 static struct pi_device flash;
 static struct pi_hyperflash_conf flash_conf;
@@ -45,7 +45,7 @@ void app(void)
         return;
     }
     
-    rc = ota_get_img_state(table, &ota_img_state);
+    rc = ota_get_state_info(table, &ota_img_state, NULL);
     if(rc != PI_OK)
     {
         PI_LOG_ERR("app", "Unable to load OTA state");

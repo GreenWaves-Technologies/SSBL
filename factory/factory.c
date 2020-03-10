@@ -7,7 +7,7 @@
 #include "bsp/fs.h"
 #include <bsp/fs/hostfs.h>
 #include <bsp/fs/readfs.h>
-#include "updater.h"
+#include "bsp/updater.h"
 
 static struct pi_device flash;
 static struct pi_hyperflash_conf flash_conf;
@@ -31,7 +31,7 @@ void factory(void)
     }
     
     printf("Read OTA img state\n");
-    rc = ota_get_img_state_from_flash(&flash, &ota_img_state);
+    rc = ota_get_state_info_from_flash(&flash, &ota_img_state, NULL);
     if(rc == PI_OK && ota_img_state == PI_OTA_IMG_INVALID)
     {
         printf("Last update failed! Try to update to app v1\n");

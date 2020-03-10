@@ -29,20 +29,35 @@
 #include "bsp/flash_partition.h"
 #include "bsp/ota_utility.h"
 
+/**
+ * @brief Get the next partition slot to update app.
+ * @param table An instance of partition table to find next OTA partition.
+ * @return The partition to use for the update. NULL if partition is not found.
+ */
 const pi_partition_t *ota_get_next_ota_partition(const pi_partition_table_t table);
 
-pi_err_t ota_get_img_state(const pi_partition_table_t table, ota_img_states_t *ota_img_state);
+/**
+ * @brief Fetch OTA information, current OTA state and pending partition.
+ *
+ * Usefull to know if an update is successfull
+ * or for an APP, check if it is the first boot, run the test and validate the update.
+ * @param table  An instance of partition table to fetch OTA information.
+ * @param ota_img_state If not NULL, return the pending IMG state.
+ * @param subtype If not NULL, return the current pending subtype partition.
+ * @return PI_OK on success.
+ */
+pi_err_t ota_get_state_info(const pi_partition_table_t table, ota_img_states_t *ota_img_state, pi_partition_subtype_t *subtype);
 
-pi_err_t ota_get_img_state_from_flash(pi_device_t *flash, ota_img_states_t *ota_img_state);
+pi_err_t ota_get_state_info_from_flash(pi_device_t *flash, ota_img_states_t *ota_img_state, pi_partition_subtype_t *subtype);
 
 /**
  * @brief This function is called to indicate that the running app is working well.
  *
+ * @param table  An instance of partition table to write OTA information.
  * @return
  *  - PI_OK: if successful.
  */
 pi_err_t ota_mark_app_valid_cancel_rollback(const pi_partition_table_t table);
-
 
 /**
  * @brief This function is called to roll back to the previously workable app with reboot.
@@ -50,18 +65,19 @@ pi_err_t ota_mark_app_valid_cancel_rollback(const pi_partition_table_t table);
  * If rollback is successful then device will reset else API will return with error code.
  * Checks applications on a flash drive that can be booted in case of rollback.
  * If the flash does not have at least one app (except the running app) then rollback is not possible.
+ *
+ * @param table  An instance of partition table to write OTA information.
  * @return
  *  - pi_FAIL: if not successful.
  */
 pi_err_t ota_mark_app_invalid_rollback_and_reboot(const pi_partition_table_t table);
-
 
 /**
  * @brief Configure OTA data for a new boot partition
  *
  * @note If this function returns PI_OK, calling pi_restart() will boot the newly configured app partition.
  *
- * @param table Table where ota data can be fetched.
+ * @param table  An instance of partition table to write OTA information.
  * @param partition Pointer to info for partition containing app image to boot.
  *
  * @return

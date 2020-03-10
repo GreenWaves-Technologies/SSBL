@@ -238,22 +238,27 @@ pi_err_t ota_set_boot_partition(const pi_partition_table_t table, const pi_parti
     return rc;
 }
 
-pi_err_t ota_get_img_state(const pi_partition_table_t table, ota_img_states_t *ota_img_state)
+pi_err_t ota_get_state_info(const pi_partition_table_t table, ota_img_states_t *ota_img_state, pi_partition_subtype_t *subtype)
 {
     pi_err_t rc;
     ota_state_t ota_state_info;
     
     rc = ota_utility_get_ota_state_from_partition_table(table, &ota_state_info);
-    
-    if(rc == PI_OK)
+    if(rc != PI_OK)
     {
-        *ota_img_state = ota_state_info.state;
+        return rc;
     }
     
-    return rc;
+    if (ota_img_state)
+        *ota_img_state = ota_state_info.state;
+    
+    if (subtype)
+        *subtype = ota_state_info.once;
+    
+    return PI_OK;
 }
 
-pi_err_t ota_get_img_state_from_flash(pi_device_t *flash, ota_img_states_t *ota_img_state)
+pi_err_t ota_get_state_info_from_flash(pi_device_t *flash, ota_img_states_t *ota_img_state, pi_partition_subtype_t *subtype)
 {
     const pi_partition_table_t table;
     pi_err_t rc;
@@ -265,7 +270,7 @@ pi_err_t ota_get_img_state_from_flash(pi_device_t *flash, ota_img_states_t *ota_
         return rc;
     }
     
-    rc = ota_get_img_state(table, ota_img_state);
+    rc = ota_get_state_info(table, ota_img_state, subtype);
     
     pi_partition_table_free(table);
     return rc;

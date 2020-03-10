@@ -3,7 +3,7 @@
 SHELL = /bin/bash
 APP              = factory
 APP_SRCS        += factory.c \
-../ota.c ../ota_utility.c ../bootloader_utility.c
+../ota.c ../ota_utility.c ../bootloader_utility.c ../updater.c
 APP_INC	        += ..
 
 LOG_LEVEL ?= 2

@@ -3,7 +3,7 @@
 SHELL = /bin/bash
 APP              = app
 APP_SRCS        += app.c \
-../ota.c ../ota_utility.c ../bootloader_utility.c
+../ota.c ../ota_utility.c ../bootloader_utility.c ../updater.c
 APP_INC	        += ..
 
 VERSION ?= 0

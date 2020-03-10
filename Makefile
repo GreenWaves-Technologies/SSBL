@@ -8,7 +8,7 @@ APP_SRCS        += \
     bootloader_utility.c \
     partition.c \
     ota_utility.c \
-    ota.c
+    ota.c updater.c
 
 APP_INC         += .
 
