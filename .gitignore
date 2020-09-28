@@ -4,3 +4,6 @@ BUILD/
 cmake-build-debug/
 factory.bin
 factory.elf
+
+*.elf
+*.bin

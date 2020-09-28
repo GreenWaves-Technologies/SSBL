@@ -7,16 +7,13 @@ APP_SRCS        += ssbl.c
 APP_INC         += .
 
 LOG_LEVEL ?= 2
-APP_CFLAGS      += -Wall -Werror -Wextra \
-    -DPI_LOG_DEFAULT_LEVEL=$(LOG_LEVEL) -DPI_LOG_NO_CORE_ID
+APP_CFLAGS      += -Wall -Werror -Wextra 
+DEBUG_FLAGS    = -DPI_LOG_DEFAULT_LEVEL=$(LOG_LEVEL) -DPI_LOG_NO_CORE_ID
 
 ifeq ($(platform), gvsoc)
 APP_LINK_SCRIPT = ssbl-GAP8-gvsoc.ld
-io?=host
 else
 APP_LINK_SCRIPT = ssbl-GAP8.ld
-#io?=uart
-io?=host
 endif
 
 #export GAP_USE_OPENOCD=1
@@ -44,12 +41,21 @@ FLASH_DEPS += $(FACTORY_BIN)
 GEN_FLASH_IMAGE_FLAGS += -p factory $(FACTORY_BIN)
 
 factory.elf:
-	cd factory && make LOG_LEVEL=$(LOG_LEVEL) io=$(io) all && cp BUILD/GAP8_V2/GCC_RISCV/test ../$@ && cd ..
+	cd factory && make LOG_LEVEL=$(LOG_LEVEL) io=$(io) all && cp BUILD/$(TARGET_CHIP)/GCC_RISCV/factory ../$@ && cd ..
 
 # App
 app0.elf app1.elf:
-	cd app && touch app.c && make LOG_LEVEL=$(LOG_LEVEL) VERSION=0 io=$(io) all && cp BUILD/GAP8_V2/GCC_RISCV/test ../app0.elf && cd ..
-	cd app && touch app.c && make LOG_LEVEL=$(LOG_LEVEL) VERSION=1 io=$(io) all && cp BUILD/GAP8_V2/GCC_RISCV/test ../app1.elf && cd ..
+	cd app && touch app.c && make clean LOG_LEVEL=$(LOG_LEVEL) VERSION=0 io=$(io) all && cp BUILD/$(TARGET_CHIP)/GCC_RISCV/app ../app0.elf && cd ..
+	cd app && touch app.c && make clean LOG_LEVEL=$(LOG_LEVEL) VERSION=1 io=$(io) all && cp BUILD/$(TARGET_CHIP)/GCC_RISCV/app ../app1.elf && cd ..
+
+build_bin: app0.elf app1.elf factory.elf
+	gapy --target=$(GAPY_TARGET) elf2bin app0.elf
+	gapy --target=$(GAPY_TARGET) elf2bin app1.elf
+	gapy --target=$(GAPY_TARGET) elf2bin factory.elf
+
+prebuild: build_bin
+
+all:: prebuild
 
 #
 # Includes

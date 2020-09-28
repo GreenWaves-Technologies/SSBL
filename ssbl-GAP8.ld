@@ -42,11 +42,9 @@ MEMORY
   FC_tcdm           : ORIGIN = 0x1B000000, LENGTH = 0x4000
 }
 
-__L1_STACK_SIZE      = 0x400;
+__STACK_FC_SIZE      = 0x1000;
 
-__FC_STACK_SIZE      = 0x1000;
-
-__IRQ_STACK_SIZE     = 0x400;
+__STACK_IRQ_SIZE     = 0x400;
 
 /* We have to align each sector to word boundaries as our current s19->slm
  * conversion scripts are not able to handle non-word aligned sections. */
@@ -233,6 +231,7 @@ SECTIONS
        *(.fcTcdm_g.*)
      } > FC_tcdm
 
+     /*
     .fcbss (ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm_g) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny)) : AT(ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm_g) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny))
     {
         . = ALIGN(4);
@@ -246,16 +245,29 @@ SECTIONS
         __fc_bss_end__ = . + __IRQ_STACK_SIZE + __FC_STACK_SIZE;
      } > FC_tcdm
 
-     __fc_bss_size__ = __fc_bss_end__ - __fc_bss_start__;
      __irq_stack_size__ = __IRQ_STACK_SIZE;
+     __fc_bss_size__ = __fc_bss_end__ - __fc_bss_start__;
+     */
 
-    .heapfcram (ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm_g) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny) + __fc_bss_size__ ) : AT(ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm_g) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny) + __fc_bss_size__)
+    /* This section contains stack used by IRQ handler. */
+    .stack_irq :
     {
         . = ALIGN(4);
-        *(.heapfcram)
+        __stack_irq_end__ = .;
+        . += __STACK_IRQ_SIZE;
+        __stack_irq_start__ = .;
+     } > FC_tcdm
 
-        . = ALIGN(4);
+    .heapfcram (ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm_g) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny) + SIZEOF(.stack_irq) ) : AT(ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm_g) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny) + SIZEOF(.stack_irq))
+    {
+        . = ALIGN(8);
+        *(.heapfcram)
+        *(.heapfcram.*)
+        . = ALIGN(8);
         __heapfcram_start = .;
+        __stack_fc_end__ = .;
+        . += __STACK_FC_SIZE;
+        __stack_fc_start__ = .;
     } > FC_tcdm
 
      __heapfcram_size = LENGTH(FC_tcdm) + ORIGIN(FC_tcdm) - __heapfcram_start;
