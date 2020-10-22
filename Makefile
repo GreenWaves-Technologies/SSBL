@@ -6,24 +6,23 @@ APP              = ssbl
 APP_SRCS        += ssbl.c
 APP_INC         += .
 
-LOG_LEVEL ?= 2
-APP_CFLAGS      += -Wall -Werror -Wextra 
-DEBUG_FLAGS    = -DPI_LOG_DEFAULT_LEVEL=$(LOG_LEVEL) -DPI_LOG_NO_CORE_ID
+LOG_LEVEL ?= 5
+APP_CFLAGS      += -Wall -Werror
+APP_CFLAGS    += -DPI_LOG_DEFAULT_LEVEL=$(LOG_LEVEL) -DPI_LOG_LOCAL_LEVEL=$(LOG_LEVEL) -DPI_LOG_NO_CORE_ID -DCONFIG_NO_FC_TINY -DCONFIG_NO_CLUSTER=1
 
-ifeq ($(platform), gvsoc)
-APP_LINK_SCRIPT = ssbl-GAP8-gvsoc.ld
-else
-APP_LINK_SCRIPT = ssbl-GAP8.ld
-endif
+CONFIG_NO_LDSCRIPT = 1
+CONFIG_PULPRT_LIB = rtnotiny
+APP_LDFLAGS += -Tssbl-GAP8.ld
 
 #export GAP_USE_OPENOCD=1
-PMSIS_OS = freertos
+#PMSIS_OS = freertos
 
 #
 # Partitions
 #
 
-PARTITION_TABLE = ota.csv
+config_args += --config-opt=flash/content/partition-table=ota.csv
+config_args += --config-opt=flash/content/partitions/factory/image=factory.bin
 
 # ReadFS
 READFS_FILES += app0.bin app1.bin
