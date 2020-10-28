@@ -2,13 +2,23 @@
 # Second Stage Boot Loader Makefile
 #------------------------------------
 
+##  SSBL Configuration
+##  To enable QSPI_FLASH/RAM instead of Hyper Flash/Ram:
+##  QSPI or HYPER:
+#EXT_MEM_TYPE ?= QSPI
+EXT_MEM_TYPE ?= HYPER
+##  LOG_LEVEL: (0 - 5)
+LOG_LEVEL ?= 5
+##  Printf io for debugging: jtag or uart
+io ?= uart
+
 APP              = ssbl
 APP_SRCS        += ssbl.c
 APP_INC         += .
 
-LOG_LEVEL ?= 5
 APP_CFLAGS      += -Wall -Werror
 APP_CFLAGS    += -DPI_LOG_DEFAULT_LEVEL=$(LOG_LEVEL) -DPI_LOG_LOCAL_LEVEL=$(LOG_LEVEL) -DPI_LOG_NO_CORE_ID -DCONFIG_NO_FC_TINY -DCONFIG_NO_CLUSTER=1
+APP_CFLAGS += -D$(EXT_MEM_TYPE)
 
 CONFIG_NO_LDSCRIPT = 1
 CONFIG_PULPRT_LIB = rtnotiny
@@ -40,12 +50,12 @@ FLASH_DEPS += $(FACTORY_BIN)
 GEN_FLASH_IMAGE_FLAGS += -p factory $(FACTORY_BIN)
 
 factory.elf:
-	cd factory && make LOG_LEVEL=$(LOG_LEVEL) io=$(io) all && cp BUILD/$(TARGET_CHIP)/GCC_RISCV/factory ../$@ && cd ..
+	cd factory && make LOG_LEVEL=$(LOG_LEVEL) io=$(io) EXT_MEM=$(EXT_MEM_TYPE) all && cp BUILD/$(TARGET_CHIP)/GCC_RISCV/factory ../$@ && cd ..
 
 # App
 app0.elf app1.elf:
-	cd app && touch app.c && make clean LOG_LEVEL=$(LOG_LEVEL) VERSION=0 io=$(io) all && cp BUILD/$(TARGET_CHIP)/GCC_RISCV/app ../app0.elf && cd ..
-	cd app && touch app.c && make clean LOG_LEVEL=$(LOG_LEVEL) VERSION=1 io=$(io) all && cp BUILD/$(TARGET_CHIP)/GCC_RISCV/app ../app1.elf && cd ..
+	cd app && touch app.c && make clean LOG_LEVEL=$(LOG_LEVEL) EXT_MEM=$(EXT_MEM_TYPE) VERSION=0 io=$(io) all && cp BUILD/$(TARGET_CHIP)/GCC_RISCV/app ../app0.elf && cd ..
+	cd app && touch app.c && make clean LOG_LEVEL=$(LOG_LEVEL) VERSION=1 io=$(io) EXT_MEM=$(EXT_MEM_TYPE) all && cp BUILD/$(TARGET_CHIP)/GCC_RISCV/app ../app1.elf && cd ..
 
 build_bin: app0.elf app1.elf factory.elf
 	gapy --target=$(GAPY_TARGET) elf2bin app0.elf

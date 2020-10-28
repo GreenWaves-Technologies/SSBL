@@ -22,7 +22,13 @@
 #include "stdint.h"
 
 #include "pmsis.h"
+#if defined(QSPI)
+#define FLASH_NAME "QSPI"
+#include "bsp/flash/spiflash.h"
+#else
+#define FLASH_NAME "HYPER"
 #include "bsp/flash/hyperflash.h"
+#endif
 #include "bsp/flash_partition.h"
 
 #include "bsp/bootloader_utility.h"
@@ -33,13 +39,22 @@
  */
 
 static pi_device_t flash;
+
+#if defined(QSPI)
+static struct pi_spiflash_conf flash_conf;
+#else
 static struct pi_hyperflash_conf flash_conf;
+#endif
 
 
-void open_flash(pi_device_t *flash, struct pi_hyperflash_conf *flash_conf)
+void open_flash(pi_device_t *flash)
 {
-    pi_hyperflash_conf_init(flash_conf);
-    pi_open_from_conf(flash, flash_conf);
+#if defined(QSPI)
+    pi_spiflash_conf_init(&flash_conf);
+#else
+    pi_hyperflash_conf_init(&flash_conf);
+#endif
+    pi_open_from_conf(flash, &flash_conf);
 
 //    if (conf.info3.flash_type) blockSize = HYPER_FLASH_BLOCK_SIZE;
     
@@ -55,20 +70,20 @@ void ota_state_is_valid_test()
 {
     ota_state_t state;
     
-    printf("Whole struct is set to 0xFF\n\n");
+    SSBL_INF("Whole struct is set to 0xFF\n\n");
     memset(&state, 0xFF, sizeof(ota_state_t));
     bool ok = ota_utility_state_is_valid(&state);
-    printf("state is %s\n", ok ? "ok" : "bad\n");
+    SSBL_INF("state is %s\n", ok ? "ok" : "bad\n");
     
-    printf("seq --\n\n");
+    SSBL_INF("seq --\n\n");
     state.seq--;
     ok = ota_utility_state_is_valid(&state);
-    printf("state is %s\n", ok ? "ok" : "bad\n");
+    SSBL_INF("state is %s\n", ok ? "ok" : "bad\n");
     
-    printf("compute md5\n\n");
+    SSBL_INF("compute md5\n\n");
     ota_utility_compute_md5(&state, state.md5);
     ok = ota_utility_state_is_valid(&state);
-    printf("state is %s\n", ok ? "ok" : "bad\n");
+    SSBL_INF("state is %s\n", ok ? "ok" : "bad\n");
     
     exit(0);
 }
@@ -127,7 +142,7 @@ void ssbl(void)
     SSBL_INF("GAP Second Stage Boot Loader start\n");
     
     SSBL_INF("Open flash...\n");
-    open_flash(&flash, &flash_conf);
+    open_flash(&flash);
     SSBL_INF("Open flash done.\n");
     
     boot_to_flash_app(&flash);
@@ -141,6 +156,6 @@ void ssbl(void)
 
 int main(void)
 {
-    
+    SSBL_INF("\n\t SSBL %s Version\n\n", FLASH_NAME);
     return pmsis_kickoff((void *) ssbl);
 }
