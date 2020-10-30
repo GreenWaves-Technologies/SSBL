@@ -92,6 +92,7 @@ void app(void)
 
 int main(void)
 {
+    printf("\n\t app %s Version\n\n", FLASH_NAME);
     pmsis_kickoff((void *) app);
 }
 

@@ -72,6 +72,7 @@ void factory(void)
 
 int main(void)
 {
+    printf("\n\t Factory %s Version\n\n", FLASH_NAME);
     pmsis_kickoff((void *) factory);
 }
 

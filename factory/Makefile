@@ -14,6 +14,7 @@ EXT_MEM_TYPE ?= QSPI
 #export GAP_USE_OPENOCD=1
 PMSIS_OS=pulpos
 
+APP_CFLAGS += -D$(EXT_MEM_TYPE)
 
 
 include $(RULES_DIR)/pmsis_rules.mk
