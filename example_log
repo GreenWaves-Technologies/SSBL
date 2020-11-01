@@ -1,0 +1,129 @@
+[15:51:28:295] <break>
+[15:51:36:502] I ssbl: ␊
+[15:51:36:502] ⇥	 SSBL QSPI Version␊
+[15:51:36:502] ␊
+[15:51:36:502] <0x1b>[0mI ssbl: GAP Second Stage Boot Loader start␊
+[15:51:36:502] <0x1b>[0mI ssbl: Open flash...␊
+[15:51:36:530] <0x1b>[0mI ssbl: Open flash done.␊
+[15:51:36:530] <0x1b>[0mI ssbl: Load partition table from flash␊
+[15:51:36:530] <0x1b>[0m## Label ⇥	   Type Sub Type Offset Length␊
+[15:51:36:530]  0 otadata          0x01 0x00 0xd000     0x2000    ␊
+[15:51:36:530]  1 factory          0x00 0x00 0xf000     0x100000  ␊
+[15:51:36:534]  2 ota_0            0x00 0x10 0x10f000   0x100000  ␊
+[15:51:36:536]  3 ota_1            0x00 0x11 0x20f000   0x100000  ␊
+[15:51:36:540]  4 readfs           0x01 0x81 0x30f000   0x12ff0   ␊
+[15:51:36:553] <0x1b>[0;33mW [32:0] ssbl: Unable to read OTA data. Try to boot to factory or ota0 partition.<0x1b>[0mI ssbl: Boot to partition subtype 0x0 at offset 0xf000␊
+[15:51:36:570] ␊
+[15:51:36:570] ⇥	 Factory QSPI Version␊
+[15:51:36:570] ␊
+[15:51:36:570] Hello word from factory app after kickoff!␊
+[15:51:36:577] Read OTA img state␊
+[15:51:36:583] Try to update to app0.bin from readfs␊
+[15:51:52:729] <0x1b>[0;33mW [32:0] ota: Unable to load ota data information, use a new one.<0x1b>[0mPlease reboot the device.␊
+[15:52:01:405] <break>
+[15:52:15:464] I ssbl: ␊
+[15:52:15:464] ⇥	 SSBL QSPI Version␊
+[15:52:15:464] ␊
+[15:52:15:464] <0x1b>[0mI ssbl: GAP Second Stage Boot Loader start␊
+[15:52:15:464] <0x1b>[0mI ssbl: Open flash...␊
+[15:52:15:476] <0x1b>[0mI ssbl: Open flash done.␊
+[15:52:15:476] <0x1b>[0mI ssbl: Load partition table from flash␊
+[15:52:15:483] <0x1b>[0m## Label ⇥	   Type Sub Type Offset Length␊
+[15:52:15:491]  0 otadata          0x01 0x00 0xd000     0x2000    ␊
+[15:52:15:491]  1 factory          0x00 0x00 0xf000     0x100000  ␊
+[15:52:15:496]  2 ota_0            0x00 0x10 0x10f000   0x100000  ␊
+[15:52:15:502]  3 ota_1            0x00 0x11 0x20f000   0x100000  ␊
+[15:52:15:507]  4 readfs           0x01 0x81 0x30f000   0x12ff0   ␊
+[15:52:15:570] I ssbl: Boot to partition subtype 0x10 at offset 0x10f000␊
+[15:52:15:586] ␊
+[15:52:15:586] ⇥	 app QSPI Version␊
+[15:52:15:586] ␊
+[15:52:15:586] Hello word from app version 0 after kickoff!␊
+[15:52:15:598] This is the first boot for this version, run tests...␊
+[15:52:15:598] Test not ok, mark app unvalid␊
+[15:52:15:673] Please reboot the device.␊
+[15:52:25:634] <break>
+[15:52:29:075] I ssbl: ␊
+[15:52:29:075] ⇥	 SSBL QSPI Version␊
+[15:52:29:075] ␊
+[15:52:29:075] <0x1b>[0mI ssbl: GAP Second Stage Boot Loader start␊
+[15:52:29:075] <0x1b>[0mI ssbl: Open flash...␊
+[15:52:29:091] <0x1b>[0mI ssbl: Open flash done.␊
+[15:52:29:091] <0x1b>[0mI ssbl: Load partition table from flash␊
+[15:52:29:091] <0x1b>[0m## Label ⇥	   Type Sub Type Offset Length␊
+[15:52:29:098]  0 otadata          0x01 0x00 0xd000     0x2000    ␊
+[15:52:29:104]  1 factory          0x00 0x00 0xf000     0x100000  ␊
+[15:52:29:104]  2 ota_0            0x00 0x10 0x10f000   0x100000  ␊
+[15:52:29:112]  3 ota_1            0x00 0x11 0x20f000   0x100000  ␊
+[15:52:29:116]  4 readfs           0x01 0x81 0x30f000   0x12ff0   ␊
+[15:52:29:120] I ssbl: Boot to partition subtype 0x0 at offset 0xf000␊
+[15:52:29:135] ␊
+[15:52:29:135] ⇥	 Factory QSPI Version␊
+[15:52:29:135] ␊
+[15:52:29:135] Hello word from factory app after kickoff!␊
+[15:52:29:142] Read OTA img state␊
+[15:52:29:146] Last update failed! Try to update to app v1␊
+[15:52:45:395] Please reboot the device.␊
+[15:52:52:964] <break>
+[15:52:55:322] I ssbl: ␊
+[15:52:55:322] ⇥	 SSBL QSPI Version␊
+[15:52:55:322] ␊
+[15:52:55:322] <0x1b>[0mI ssbl: GAP Second Stage Boot Loader start␊
+[15:52:55:322] <0x1b>[0mI ssbl: Open flash...␊
+[15:52:55:338] <0x1b>[0mI ssbl: Open flash done.␊
+[15:52:55:338] <0x1b>[0mI ssbl: Load partition table from flash␊
+[15:52:55:338] <0x1b>[0m## Label ⇥	   Type Sub Type Offset Length␊
+[15:52:55:345]  0 otadata          0x01 0x00 0xd000     0x2000    ␊
+[15:52:55:352]  1 factory          0x00 0x00 0xf000     0x100000  ␊
+[15:52:55:352]  2 ota_0            0x00 0x10 0x10f000   0x100000  ␊
+[15:52:55:357]  3 ota_1            0x00 0x11 0x20f000   0x100000  ␊
+[15:52:55:361]  4 readfs           0x01 0x81 0x30f000   0x12ff0   ␊
+[15:52:55:438] I ssbl: Boot to partition subtype 0x10 at offset 0x10f000␊
+[15:52:55:454] ␊
+[15:52:55:454] ⇥	 app QSPI Version␊
+[15:52:55:454] ␊
+[15:52:55:454] Hello word from app version 1 after kickoff!␊
+[15:52:55:466] This is the first boot for this version, run tests...␊
+[15:52:55:466] Test ok, mark app valid␊
+[15:52:58:713] <break>
+[15:52:59:903] I ssbl: ␊
+[15:52:59:903] ⇥	 SSBL QSPI Version␊
+[15:52:59:903] ␊
+[15:52:59:903] <0x1b>[0mI ssbl: GAP Second Stage Boot Loader start␊
+[15:52:59:903] <0x1b>[0mI ssbl: Open flash...␊
+[15:52:59:915] <0x1b>[0mI ssbl: Open flash done.␊
+[15:52:59:915] <0x1b>[0mI ssbl: Load partition table from flash␊
+[15:52:59:922] <0x1b>[0m## Label ⇥	   Type Sub Type Offset Length␊
+[15:52:59:928]  0 otadata          0x01 0x00 0xd000     0x2000    ␊
+[15:52:59:928]  1 factory          0x00 0x00 0xf000     0x100000  ␊
+[15:52:59:936]  2 ota_0            0x00 0x10 0x10f000   0x100000  ␊
+[15:52:59:940]  3 ota_1            0x00 0x11 0x20f000   0x100000  ␊
+[15:52:59:945]  4 readfs           0x01 0x81 0x30f000   0x12ff0   ␊
+[15:52:59:949] I ssbl: Boot to partition subtype 0x10 at offset 0x10f000␊
+[15:52:59:962] ␊
+[15:52:59:962] ⇥	 app QSPI Version␊
+[15:52:59:962] ␊
+[15:52:59:962] Hello word from app version 1 after kickoff!␊
+[15:52:59:971] My app run normaly␊
+[15:53:02:264] <break>
+[15:53:03:438] I ssbl: ␊
+[15:53:03:438] ⇥	 SSBL QSPI Version␊
+[15:53:03:438] ␊
+[15:53:03:438] <0x1b>[0mI ssbl: GAP Second Stage Boot Loader start␊
+[15:53:03:438] <0x1b>[0mI ssbl: Open flash...␊
+[15:53:03:450] <0x1b>[0mI ssbl: Open flash done.␊
+[15:53:03:450] <0x1b>[0mI ssbl: Load partition table from flash␊
+[15:53:03:456] <0x1b>[0m## Label ⇥	   Type Sub Type Offset Length␊
+[15:53:03:463]  0 otadata          0x01 0x00 0xd000     0x2000    ␊
+[15:53:03:468]  1 factory          0x00 0x00 0xf000     0x100000  ␊
+[15:53:03:468]  2 ota_0            0x00 0x10 0x10f000   0x100000  ␊
+[15:53:03:472]  3 ota_1            0x00 0x11 0x20f000   0x100000  ␊
+[15:53:03:477]  4 readfs           0x01 0x81 0x30f000   0x12ff0   ␊
+[15:53:03:482] I ssbl: Boot to partition subtype 0x10 at offset 0x10f000␊
+[15:53:03:498] ␊
+[15:53:03:498] ⇥	 app QSPI Version␊
+[15:53:03:498] ␊
+[15:53:03:498] Hello word from app version 1 after kickoff!␊
+[15:53:03:507] My app run normaly␊
+[15:53:09:189] <break>
+

@@ -127,14 +127,76 @@ The flashimage stucture:
             ---------------------------------   
 
 
-### BOOT Updater (factory)
+### Example Scenario
 
-### Update app and boot app from Filesystem
+Once the FlashImage has been built, there is nothing to do but flash it into the flash and power the device ON. Since the flashimage will be loaded via JTAG, and it's quiet big, the flash process may takes a while. 
 
-#### Update Failed
+Be attention, this example requires the efuse has been programmed for "BOOT FROM Flash", it works with both HyperFlash and QSPI Flash based device.
 
-#### Update Success
+To compile and trigger the flash, you just need to use this command:
+
+~~~~~ shell
+make all io=uart
+~~~~~
+
+Once the flash process is done, when the device be powered on (1st boot after the flash), we will see the console from uart interface (example_log), which you can see these steps:
+
+***1st BOOT: 1st update*** 
+
+1. SSBL be loaded and executed, it read partition table, and cannot find bootable app. It load the updater (factory) sections and execute it.
+2. The Factory be executed in GAP8, and it try to update the ota 0 by read the app0 from the filesystem. You will see:
+~~~~~ shell
+Try to update to app0.bin from readfs
+~~~~~
+3. Once it's done, the factory will check the update status and change the boot address in the partition table. (***In this example, the 1st update suppose to show you what it will do when update failed***)
 
 
-## How to integrate
+***2nd BOOT: (Failed BOOT)***
+1. The app0 is designed to show you what the SSBL and OTA will do when update failed. 
+2. The SSBL be loaded and executed after reboot, it try to load app0 and execute it since the ota0 has been updated in the 1st boot above.
+3. The app0 is booted and mark the app unvalid in the partition table. 
+4. Wait for reboot.
+
+***3rd BOOT: update again***
+1. SSBL be loaded and executed after reboot, it cannot find bootable and valid app to boot, so load and exectue again the updater (factory).
+2. The factory try to update the app1 in ota_1 partition this time, since the ota_0 be marked as unvalid.
+3. Update will take some time until you see "Please reboot the device." The partition table has been update to boot with OTA_1 partition.
+
+***4th BOOT:***
+1. SSBL will be always executed, it will load the application in the OTA_1 partition and execute it since the 3rd BOOT changes the table.
+2. The app 1 has been executed, and mark the app is valid in the partition table.
+
+***AFTER 4th BOOT***
+1. The SSBL will be always executed.
+2. The app 1 will be loaded and booted until the flash has been reflashed, or the factory has been executed again.
+
+
+## How to integrate and what need to be modified.
+
+The SSBL and the OTA example illustrated how the OTA works, and how the architecture looks like. Based on this, user can modify and implement it into their own system with different communication interfaces (UART/SPI/Hyperbus/etc).
+
+### SSBL
+
+The SSBL is in charge of loading different sections into GAP and execute it. In this example, we show you how the process it is, but the "Updater" should be able to be executed again when needed. 
+
+Therefore, a GPIO can be added in SSBL to trigger the updater when the GPIO is triggered.
+
+### Updater (factory)
+
+The updater should be in charge of:
+
+1. Communicating with the external device, for example a BLE module, a wifi module, a flash (in this example). 
+2. Get the new firmware and write it into the right partition. 
+3. Check and validate the update process.
+
+In this case, the user need to integrate his/her protocol to communicate with ex-devices and check the package it received and flashed is complet and correct. 
+
+### Further Features
+
+There are futher features can be added:
+
+1. Security: The new firmware can be encrypted for security reason. The updater should decrypt it on the device.
+2. Filesystem update: Able to update the files in the filesystem. 
+3. Configure the boot.3. Configure the boot.3. Configure the boot.
+
 
