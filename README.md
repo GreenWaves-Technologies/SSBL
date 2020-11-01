@@ -66,14 +66,65 @@ By using the tool "gapy" in the SDK, we can build a flashimage with different pa
 
 For this step, we need to prepare a partition table (a csv file), like "ota.csv" in this folder:
 
-'''''sh
+~~~~~ shell
 # Name,   Type, SubType, Offset,   Size, Flags
 # Note: if you have increased the bootloader size, make sure to update the offsets to avoid overlap
-otadata,  data, ota,     ,        2sec,
-factory,  app,  factory, ,        1M,
-ota_0,    app,  ota0,   ,        1M,
-ota_1,    app,  ota1,   ,        1M,
-'''''
+otadata,  data, ota,     ,        2sec,     // Partition for saving otadatas, 2 app sections will be prepared
+factory,  app,  factory, ,        1M,       // Partition (1MB) for Factory (Updater)
+ota_0,    app,  ota0,   ,        1M,        // Partition (1MB) for ota_0 (app 0)
+ota_1,    app,  ota1,   ,        1M,        // Partition (1MB) for ota_1 (app 1)
+~~~~~
+
+This CSV file should be provided to the gapy as this line in the Makefile:
+
+~~~~~ shell
+config_args += --config-opt=flash/content/partition-table=ota.csv
+~~~~~
+
+Add updater binary in the "factory" partition
+
+1. Using gapy to create the binary based on the ELF file: (in Makefile)
+
+~~~~~ shell
+gapy --target=$(GAPY_TARGET) elf2bin factory.elf
+~~~~~
+
+2. Add the factory in partition:
+
+~~~~~ shell
+GEN_FLASH_IMAGE_FLAGS += -p factory $(FACTORY_BIN)
+~~~~~
+
+Using the same way to create bin, and add apps in to filesystem -- readFS:
+
+~~~~~ shell
+READFS_FILES += app0.bin app1.bin
+~~~~~
+
+The flashimage stucture:
+
+            ---------------------------------   Offset 0x0
+            |        Partition table        |   
+            |           Address             |   
+            ---------------------------------   Offset 0x4
+            |             SSBL              |
+            |                               |
+            ---------------------------------   
+            |        Partition Table        |
+            |                               |
+            ---------------------------------   
+            |           Factory             |
+            |                               |
+            ---------------------------------   
+            |            OTA_0              |
+            |                               |
+            ---------------------------------   
+            |            OTA_1              |
+            |                               |
+            ---------------------------------   
+            |         File System           |
+            |           ReadFS              |
+            ---------------------------------   
 
 
 ### BOOT Updater (factory)
