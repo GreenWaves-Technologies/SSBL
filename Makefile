@@ -81,6 +81,3 @@ clean::
 	rm -f app0.elf app0.bin
 	rm -f app1.elf app1.bin
 
-
-
-
